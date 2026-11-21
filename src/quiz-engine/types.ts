@@ -1,9 +1,10 @@
-export type ModeId = 'bul' | 'neresi' | 'yakin' | 'plaka' | 'bayrak' | 'hepsi';
-export const MODES: ModeId[] = ['bul', 'neresi', 'yakin', 'plaka', 'bayrak', 'hepsi'];
+export type ModeId = 'bul' | 'neresi' | 'yakin' | 'plaka' | 'bayrak' | 'test' | 'hepsi';
+export const MODES: ModeId[] = ['bul', 'neresi', 'yakin', 'plaka', 'bayrak', 'test', 'hepsi'];
 
 /** Bölüme özel mod: Memleket'te plaka, Cihan'da bayrak */
 export const specialMode = (atlas: string): 'plaka' | 'bayrak' => (atlas === 'memleket' ? 'plaka' : 'bayrak');
-export const modesFor = (atlas: string): ModeId[] => ['bul', 'neresi', 'yakin', specialMode(atlas), 'hepsi'];
+export const modesFor = (atlas: string): ModeId[] =>
+  atlas === 'memleket' ? ['bul', 'neresi', 'yakin', 'plaka', 'test', 'hepsi'] : ['bul', 'neresi', 'yakin', 'bayrak', 'hepsi'];
 
 /** Sorulabilecek bir yer (il, ülke) */
 export interface QuizItem {

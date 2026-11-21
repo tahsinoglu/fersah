@@ -140,4 +140,21 @@ writeFileSync(join(root, 'src', 'data', 'generated', 'bayraklar.json'), JSON.str
   ulkeler.features.filter((f) => flagIds.includes(f.properties.id)).map((f) => [f.properties.id, String(f.properties.iso2).toLowerCase()]),
 )));
 console.log('bayrak', flagCount);
+// İlçeler ve iller arası karayolu mesafeleri (turkey-neighbourhoods, MIT)
+const tn = join(root, 'node_modules', 'turkey-neighbourhoods', 'src', 'data');
+const ilceRaw = JSON.parse(readFileSync(join(tn, 'districtsByCityCode.json'), 'utf8'));
+const ilceler = {};
+for (const [code, list] of Object.entries(ilceRaw)) ilceler[String(code).padStart(2, '0')] = [...list].sort((a, b) => a.localeCompare(b, 'tr'));
+writeFileSync(join(root, 'src', 'data', 'generated', 'ilceler.json'), JSON.stringify(ilceler));
+const distRaw = JSON.parse(readFileSync(join(tn, 'distances.json'), 'utf8'));
+const mesafe = {};
+for (const [a, row] of Object.entries(distRaw)) {
+  for (const [b, km] of Object.entries(row)) {
+    const A = String(a).padStart(2, '0');
+    const B = String(b).padStart(2, '0');
+    if (A < B) mesafe[`${A}-${B}`] = km;
+  }
+}
+writeFileSync(join(root, 'src', 'data', 'generated', 'karayolu.json'), JSON.stringify(mesafe));
+console.log('ilçe', Object.values(ilceler).reduce((n, l) => n + l.length, 0), 'mesafe', Object.keys(mesafe).length);
 console.log('tamam');

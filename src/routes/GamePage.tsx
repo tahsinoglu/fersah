@@ -14,12 +14,16 @@ import { cardKey, getProgress, recordAnswer, recordDaily, recordRound, useProgre
 import { accusative, capitalsOf, factOf, scopeName, scopeUnits, toItems } from '../game/content';
 import { evaluateChoice, evaluateNear, type Answer } from '../game/evaluate';
 import { haversineKm } from '../scoring/geo';
+import karayolu from '../data/generated/karayolu.json';
+import { roadKey } from '../quiz-engine/memleketTest';
 import { prefersReducedMotion } from '../lib/theme';
 import { useSafeArea } from '../lib/viewport';
 import { pathFor } from '../lib/routes';
 import { Loading } from '../ui/Loading';
 import { FeedbackCard, FlagImage, GameHud, OptionGrid, PlateBadge, PromptCard, Stopwatch, type OptionState } from '../ui/game';
 import { ResultView } from '../ui/ResultView';
+import { TestQuiz } from './TestQuiz';
+import { onRoundFinished } from '../account/hooks';
 
 type GameMode = ModeId | 'gunluk';
 const NONE: ReadonlySet<string> = new Set();
@@ -48,7 +52,9 @@ export function GamePage({ daily = false }: { daily?: boolean }) {
 
   return (
     <div data-atlas={atlasId} className="app-bg fixed inset-0 overflow-hidden text-[var(--ink)]">
-      {atlas ? (
+      {atlas && mode === 'test' ? (
+        <TestQuiz key={scope} atlas={atlas} scope={scope} exitTo={pathFor(atlasId, atlas, scope === 'tum' ? {} : { groupId: scope })} />
+      ) : atlas ? (
         <Game key={`${atlasId}:${mode}:${scope}`} atlasId={atlasId} atlas={atlas} mode={mode} scope={scope} />
       ) : error ? (
         <p className="grid h-full place-items-center px-8 text-center font-semibold text-[var(--ink-2)]">{t.app.loadError}</p>
@@ -157,7 +163,9 @@ function Game({ atlasId, atlas, mode, scope }: { atlasId: AtlasId; atlas: Atlas;
       setPhase('done');
       const ms = performance.now() - startRef.current;
       const correct = all.filter((a) => a.correct).length;
-      recordRound({ at: Date.now(), atlas: atlasId, scope, mode, total: all.length, correct, score: all.reduce((s, a) => s + a.score, 0), ms });
+      const rec = { at: Date.now(), atlas: atlasId, scope, mode, total: all.length, correct, score: all.reduce((s, a) => s + a.score, 0), ms };
+      recordRound(rec);
+      onRoundFinished(rec);
       if (mode === 'gunluk') {
         recordDaily(atlasId, {
           key: today,
@@ -377,6 +385,8 @@ function Game({ atlasId, atlas, mode, scope }: { atlasId: AtlasId; atlas: Atlas;
           const a = atlas.invert(picked.label);
           const b = atlas.invert(target.label);
           if (a && b) fbLines.push(t.game.between(picked.name, target.name, Math.round(haversineKm(a, b))));
+          const road = atlasId === 'memleket' ? (karayolu as Record<string, number>)[roadKey(picked.id, target.id)] : undefined;
+          if (road) fbLines.push(t.game.road(road));
         } else if (!picked && last.at) {
           fbLines.push(t.game.tappedSea);
         }

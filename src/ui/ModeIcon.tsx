@@ -14,6 +14,8 @@ export function ModeIcon({ mode, size = 24 }: { mode: ModeId | 'gunluk'; size?: 
       return (<svg {...p}><rect x="2.5" y="7" width="19" height="10" rx="2" /><path d="M5.5 7v10" /><path d="M9 12h2M13 12h1.5M17 12h1" /></svg>);
     case 'bayrak':
       return (<svg {...p}><path d="M5 21V4" /><path d="M5 4.5c4-2 7 2 13 0v9c-6 2-9-2-13 0" /></svg>);
+    case 'test':
+      return (<svg {...p}><rect x="4.5" y="3.5" width="15" height="17" rx="2.5" /><path d="M8 8h8M8 12h8M8 16h5" /></svg>);
     case 'hepsi':
       return (<svg {...p}><circle cx="12" cy="13" r="7.5" /><path d="M12 13V9.5M10 2.5h4M18.5 6.5l1.5-1.5" /></svg>);
     default:

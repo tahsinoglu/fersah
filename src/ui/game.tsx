@@ -128,7 +128,7 @@ export function FeedbackCard({
             </p>
           )}
           {fact && <p className={capitals?.length ? 'mt-1' : ''}>{fact.metin}</p>}
-          {fact && (
+          {fact?.kaynak && (
             <a href={fact.kaynak} target="_blank" rel="noreferrer" className="mt-1 inline-block text-[12.5px] font-semibold text-[var(--ink-3)] underline">
               {t.game.factSource}: Vikipedi
             </a>

@@ -5,6 +5,7 @@ import type { Atlas, MapUnit, Selection } from '../map-engine/types';
 import { IconClose, IconPlay } from './icons';
 import { capitalsOf, factOf, isQuizzable, type Fact } from '../game/content';
 import { masteryPercent, useProgress, type Progress } from '../progress/store';
+import ilcelerJson from '../data/generated/ilceler.json';
 
 /** Mobil alt sayfanın kapalıyken görünen yüksekliği (px). Kamera hesabı da bunu kullanır. */
 export const SHEET_PEEK = 200;
@@ -31,6 +32,8 @@ interface Content {
   capitals?: string[];
   children: MapUnit[];
   childLabel?: string;
+  /** İlin ilçeleri */
+  ilceler?: string[];
 }
 
 function contentOf(id: AtlasId, atlas: Atlas, sel: Selection, progress: Progress): Content | null {
@@ -64,6 +67,7 @@ function contentOf(id: AtlasId, atlas: Atlas, sel: Selection, progress: Progress
     mastery: isCountry ? masteryPercent(progress, id, [u.id]) : 0,
     fact: factOf(id, u.id),
     capitals: !mem && isCountry ? capitalsOf(u.id) : undefined,
+    ilceler: mem ? (ilcelerJson as Record<string, string[]>)[u.id] : undefined,
     children: [],
   };
 }
@@ -131,6 +135,18 @@ function Body({ c, onClose, onPick, onPlay, peek }: { c: Content; onClose: () =>
               {t.game.factSource}: Vikipedi
             </a>
           )}
+        </div>
+      )}
+      {c.ilceler && c.ilceler.length > 0 && (
+        <div className="mt-5">
+          <h3 className="mb-2 text-[12.5px] font-bold uppercase tracking-[0.08em] text-[var(--ink-3)]">İlçeleri ({c.ilceler.length})</h3>
+          <ul className="flex flex-wrap gap-1.5">
+            {c.ilceler.map((n) => (
+              <li key={n} className="rounded-lg border border-[var(--hairline)] px-2.5 py-1 text-[14px] text-[var(--ink-2)]">
+                {n}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
       {c.children.length > 0 && (
