@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { applyRound, checkName, checkRound, emptyBoard, makeToken, readToken, slugOf, titleOf, trDay, utcDay, viewBoard, weekKey } from './core';
-import { BOARD_PATH, handle, type Ctx } from './handler';
+import { handle, type Ctx } from './handler';
 import { LocalStorage } from './storage';
 
 const T0 = Date.UTC(2026, 10, 22, 12, 0, 0);
 
 function ctx(start = T0) {
   let now = start;
-  const c: Ctx & { tick: (ms: number) => void } = { storage: new LocalStorage(), secret: 'test-sirri', now: () => now, tick: (ms) => (now += ms) };
+  const c: Ctx & { tick: (ms: number) => void } = { storage: new LocalStorage(), secret: 'test-sirri', now: () => now, boardTtlMs: 0, tick: (ms) => (now += ms) };
   return c;
 }
 const call = (c: Ctx, op: string, body: Record<string, unknown> = {}, method = 'POST', query: Record<string, string> = {}) => handle(op, method, body, query, c);
@@ -107,9 +107,11 @@ describe('API akışı', () => {
       Array.from({ length: 8 }, async (_, i) => ((await call(c, 'giris', { ad: `Oyuncu${i}`, pin: '3333', yeniOnay: true })).body as { token: string }).token),
     );
     c.tick(30_000);
-    await Promise.all(toks.map((token) => call(c, 'tur', { token, tur: { atlas: 'memleket', mode: 'bul', total: 10, correct: 10, score: 1000, ms: 30000 } })));
-    const b = await c.storage.read<{ oyuncular: Record<string, { toplam: number }> }>(BOARD_PATH);
-    expect(Object.values(b!.data.oyuncular).filter((p) => p.toplam === 1000)).toHaveLength(8);
+    const res = await Promise.all(toks.map((token) => call(c, 'tur', { token, tur: { atlas: 'memleket', mode: 'bul', total: 10, correct: 10, score: 1000, ms: 30000 } })));
+    expect(res.every((r) => r.status === 200)).toBe(true);
+    const v = (await call(c, 'pano', {}, 'GET')).body as { tum: { ust: { puan: number }[] }; aktif: number };
+    expect(v.tum.ust.filter((r) => r.puan === 1000)).toHaveLength(8);
+    expect(v.aktif).toBe(8);
   });
 
   it('hesap silinir ve sıralamadan çıkar', async () => {

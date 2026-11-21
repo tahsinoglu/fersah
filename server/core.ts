@@ -158,9 +158,8 @@ export function checkRound(r: RoundInput, daily: DailyInput | undefined, prev: P
   return { ok: true };
 }
 
-/** Turu panoya işler (yeni pano döner; girdi değiştirilmez) */
-export function applyRound(board: Board, slug: string, ad: string, r: RoundInput, daily: DailyInput | undefined, now: number): Board {
-  const prev = board.oyuncular[slug];
+/** Turu oyuncunun kaydına işler (yeni kayıt döner; girdi değiştirilmez) */
+export function applyRoundToPlayer(prev: Player | undefined, ad: string, r: RoundInput, daily: DailyInput | undefined, now: number): Player {
   const wk = weekKey(now);
   const p: Player = prev
     ? { ...prev, hafta: prev.hafta.k === wk ? { ...prev.hafta } : { k: wk, puan: 0 }, gun: { ...prev.gun } }
@@ -174,14 +173,18 @@ export function applyRound(board: Board, slug: string, ad: string, r: RoundInput
   // Eski günleri at (3 günden eski)
   const keep = new Set([0, 1, 2].flatMap((d) => [`memleket:${trDay(now - d * 86400000)}`, `cihan:${utcDay(now - d * 86400000)}`]));
   for (const k of Object.keys(p.gun)) if (!keep.has(k)) delete p.gun[k];
-  return { ...board, oyuncular: { ...board.oyuncular, [slug]: p } };
+  return p;
 }
 
-export function touch(board: Board, slug: string, ad: string, now: number, ustalik?: Player['ustalik']): Board {
-  const prev = board.oyuncular[slug];
+export function touchPlayer(prev: Player | undefined, ad: string, now: number, ustalik?: Player['ustalik']): Player {
   const p: Player = prev ? { ...prev, ad, son: now } : { ad, toplam: 0, turlar: 0, hafta: { k: weekKey(now), puan: 0 }, gun: {}, son: now };
   if (ustalik) p.ustalik = ustalik;
-  return { ...board, oyuncular: { ...board.oyuncular, [slug]: p } };
+  return p;
+}
+
+/** Pano görünümü için yardımcılar (eski adlarla da kullanılabilir) */
+export function applyRound(board: Board, slug: string, ad: string, r: RoundInput, daily: DailyInput | undefined, now: number): Board {
+  return { ...board, oyuncular: { ...board.oyuncular, [slug]: applyRoundToPlayer(board.oyuncular[slug], ad, r, daily, now) } };
 }
 
 export const ACTIVE_MS = 10 * 60 * 1000;

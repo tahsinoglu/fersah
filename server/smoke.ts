@@ -53,8 +53,22 @@ async function apiTest(base: string) {
   await new Promise((r) => setTimeout(r, 9000));
   const tur = await call('tur', { token, tur: { atlas: 'memleket', mode: 'bul', total: 10, correct: 9, score: 1100, ms: 40000 } });
   log('api tur', tur.status, tur.body?.toplam === 1100 ? 'TAMAM' : JSON.stringify(tur.body));
+  // Tutarlılık ölçümü: oyuncu kaydı farklı anlarda doğrudan okunur
+  const st = new BlobStorage();
+  for (const wait of [0, 2000, 5000]) {
+    await new Promise((r) => setTimeout(r, wait));
+    const d = await st.read<{ toplam: number }>(`oyuncu/${ad}.json`);
+    log(`oyuncu kaydı +${wait}ms`, 'toplam', d?.data.toplam ?? 'yok');
+  }
+  // İkinci tur: önceki puanın üstüne eklenmeli (kayıp güncelleme olmamalı)
+  await new Promise((r) => setTimeout(r, 9000));
+  const tur2 = await call('tur', { token, tur: { atlas: 'cihan', mode: 'bul', total: 10, correct: 5, score: 500, ms: 40000 } });
+  log('api ikinci tur', tur2.status, tur2.body?.toplam === 1600 ? 'TAMAM' : JSON.stringify(tur2.body));
+  await new Promise((r) => setTimeout(r, 3000));
+  const p2 = await call('pano');
+  log('api pano sonrası', JSON.stringify((p2.body as { tum?: { ust?: unknown[] } })?.tum?.ust?.slice(0, 3)));
   const g3 = await call('giris', { ad, pin: '4321' });
-  log('api tekrar giris', g3.status, (g3.body?.profil as { toplam?: number } | undefined)?.toplam === 1100 ? 'TAMAM' : JSON.stringify(g3.body));
+  log('api tekrar giris', g3.status, (g3.body?.profil as { toplam?: number } | undefined)?.toplam === 1600 ? 'TAMAM' : JSON.stringify(g3.body));
   const yanlis = await call('giris', { ad, pin: '0000' });
   log('api yanlis sifre', yanlis.status, yanlis.status === 403 ? 'TAMAM' : 'HATA');
   const sil = await call('sil', { token, pin: '4321' });

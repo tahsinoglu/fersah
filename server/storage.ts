@@ -1,6 +1,6 @@
 // Depolama: üretimde Vercel Blob (etag ile koşullu yazma), yerelde ve testlerde bellek/dosya.
-import { del, get, put, BlobPreconditionFailedError } from '@vercel/blob';
-import { mkdirSync, readFileSync, writeFileSync, existsSync, rmSync } from 'node:fs';
+import { del, get, list, put, BlobPreconditionFailedError } from '@vercel/blob';
+import { mkdirSync, readFileSync, readdirSync, writeFileSync, existsSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 export interface Doc<T> {
@@ -16,6 +16,8 @@ export interface Storage {
   /** ifMatch: yalnızca dosya hâlâ bu sürümdeyse yaz. create: yalnızca dosya yoksa yaz. */
   write<T>(path: string, data: T, opts?: { ifMatch?: string | null; create?: boolean }): Promise<void>;
   remove(path: string): Promise<void>;
+  /** Bir önekteki dosyalar; içerik CDN önbelleğinden (birkaç saniye eski olabilir) okunur */
+  listJSON<T>(prefix: string): Promise<{ path: string; data: T }[]>;
 }
 
 export class BlobStorage implements Storage {
@@ -45,6 +47,32 @@ export class BlobStorage implements Storage {
 
   async remove(path: string): Promise<void> {
     await del(path);
+  }
+
+  async listJSON<T>(prefix: string): Promise<{ path: string; data: T }[]> {
+    const items: { pathname: string; url: string }[] = [];
+    let cursor: string | undefined;
+    do {
+      const r = await list({ prefix, cursor, limit: 1000 });
+      items.push(...r.blobs.map((b) => ({ pathname: b.pathname, url: b.url })));
+      cursor = r.hasMore ? r.cursor : undefined;
+    } while (cursor && items.length < 20000);
+    const out: { path: string; data: T }[] = [];
+    // Herkese açık küçük dosyalar: CDN üzerinden, sınırlı eşzamanlılıkla
+    for (let i = 0; i < items.length; i += 24) {
+      const chunk = await Promise.all(
+        items.slice(i, i + 24).map(async (b) => {
+          try {
+            const r = await fetch(b.url);
+            return r.ok ? { path: b.pathname, data: (await r.json()) as T } : null;
+          } catch {
+            return null;
+          }
+        }),
+      );
+      out.push(...chunk.filter((x): x is { path: string; data: T } => !!x));
+    }
+    return out;
   }
 }
 
@@ -91,5 +119,17 @@ export class LocalStorage implements Storage {
     this.docs.delete(path);
     const f = this.file(path);
     if (f && existsSync(f)) rmSync(f);
+  }
+
+  async listJSON<T>(prefix: string): Promise<{ path: string; data: T }[]> {
+    const paths = new Set([...this.docs.keys()].filter((k) => k.startsWith(prefix)));
+    const dir = this.dir ? join(this.dir, prefix) : null;
+    if (dir && existsSync(dir)) for (const f of readdirSync(dir)) paths.add(prefix + f);
+    const out: { path: string; data: T }[] = [];
+    for (const p of [...paths].sort()) {
+      const d = this.readSync(p);
+      if (d) out.push({ path: p, data: JSON.parse(d.text) as T });
+    }
+    return out;
   }
 }

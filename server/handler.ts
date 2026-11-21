@@ -1,12 +1,20 @@
 // HTTP'den bağımsız istek işleyici: Vercel işlevi ve yerel geliştirme sunucusu aynısını çağırır.
+//
+// Depolama düzeni (Vercel Blob bir veritabanı değil; yazdıktan sonra kısa süre eski sürüm dönebilir):
+// - kullanici/<gizli>.json : şifre özeti ve ilerleme (yalnızca sahibi yazar)
+// - oyuncu/<ad>.json       : herkese açık skor kaydı (yalnızca sahibi yazar)
+// Ortak, çok kişinin güncellediği dosya yoktur; böylece eşzamanlı oyuncuların puanları kaybolmaz.
+// Sıralama, oyuncu kayıtları listelenerek hesaplanır ve kısa süre önbellekte tutulur.
 import {
-  applyRound, checkName, checkPin, checkRound, emptyBoard, hashPin, makeToken, readToken, titleOf, touch, userPath, verifyPin, viewBoard,
+  applyRoundToPlayer, checkName, checkPin, checkRound, hashPin, makeToken, readToken, titleOf, touchPlayer, userPath, verifyPin, viewBoard,
   type Board, type DailyInput, type Player, type RoundInput,
 } from './core.js';
 import { ConflictError, type Storage } from './storage.js';
 
-export const BOARD_PATH = 'pano/pano.json';
 const MAX_PROGRESS_BYTES = 256 * 1024;
+const BOARD_TTL_MS = 30_000;
+
+export const playerPath = (slug: string) => `oyuncu/${slug}.json`;
 
 export interface UserDoc {
   v: 1;
@@ -23,6 +31,8 @@ export interface Ctx {
   storage: Storage;
   secret: string;
   now?: () => number;
+  /** Sıralama önbelleği süresi (test için 0) */
+  boardTtlMs?: number;
 }
 
 export interface Result {
@@ -46,22 +56,47 @@ function noteFailure(slug: string, now: number) {
   else a.n += 1;
 }
 
-/** Panoyu oku-değiştir-yaz; araya başka yazma girerse yeniden dene */
-async function updateBoard(ctx: Ctx, fn: (b: Board) => Board | Result): Promise<Board | Result> {
-  for (let i = 0; i < 6; i++) {
-    const doc = await ctx.storage.read<Board>(BOARD_PATH);
-    const cur = doc?.data ?? emptyBoard();
-    const next = fn(cur);
-    if (!('oyuncular' in next)) return next;
-    try {
-      await ctx.storage.write(BOARD_PATH, next, doc ? { ifMatch: doc.etag } : { create: true });
-      return next;
-    } catch (e) {
-      if (!(e instanceof ConflictError)) throw e;
-      await new Promise((r) => setTimeout(r, 40 + Math.random() * 120 * (i + 1)));
-    }
+// Sıralama önbelleği (işlev örneği başına) + bu örnekte yazılan son kayıtlar (CDN gecikmesini kapatmak için)
+const boardCache = new WeakMap<Storage, { at: number; board: Board }>();
+const recent = new WeakMap<Storage, Map<string, Player>>();
+function remember(storage: Storage, slug: string, p: Player | null) {
+  let m = recent.get(storage);
+  if (!m) recent.set(storage, (m = new Map()));
+  if (p) m.set(slug, p);
+  else m.delete(slug);
+}
+
+async function loadBoard(ctx: Ctx, now: number): Promise<Board> {
+  const ttl = ctx.boardTtlMs ?? BOARD_TTL_MS;
+  const cached = boardCache.get(ctx.storage);
+  let board: Board;
+  if (cached && now - cached.at < ttl) board = cached.board;
+  else {
+    const rows = await ctx.storage.listJSON<Player>('oyuncu/');
+    board = { v: 1, oyuncular: Object.fromEntries(rows.map((r) => [r.path.slice('oyuncu/'.length, -'.json'.length), r.data])) };
+    boardCache.set(ctx.storage, { at: now, board });
   }
-  return fail(503, 'Sunucu şu an meşgul, birazdan tekrar dene.');
+  // Bu örnekte az önce yazılanlar listeye henüz yansımamış olabilir
+  const mine = recent.get(ctx.storage);
+  if (mine?.size) {
+    const o = { ...board.oyuncular };
+    for (const [slug, p] of mine) if (!o[slug] || o[slug].son <= p.son) o[slug] = p;
+    board = { ...board, oyuncular: o };
+  }
+  return board;
+}
+
+async function readPlayer(ctx: Ctx, slug: string): Promise<Player | undefined> {
+  const fresh = (await ctx.storage.read<Player>(playerPath(slug)))?.data;
+  const mem = recent.get(ctx.storage)?.get(slug);
+  // Okuma birkaç saniye eski olabilir: bu örnekte yazdığımız daha yeni kayıt varsa onu kullan
+  if (mem && (!fresh || mem.son > fresh.son)) return mem;
+  return fresh;
+}
+
+async function writePlayer(ctx: Ctx, slug: string, p: Player) {
+  await ctx.storage.write(playerPath(slug), p);
+  remember(ctx.storage, slug, p);
 }
 
 function profileOf(u: UserDoc, p: Player | undefined) {
@@ -75,12 +110,12 @@ function profileOf(u: UserDoc, p: Player | undefined) {
   };
 }
 
-async function auth(ctx: Ctx, token: unknown): Promise<{ slug: string; doc: { data: UserDoc; etag: string | null } } | Result> {
+async function auth(ctx: Ctx, token: unknown): Promise<{ slug: string; user: UserDoc } | Result> {
   const slug = readToken(token, ctx.secret);
   if (!slug) return fail(401, 'Oturum geçersiz; yeniden giriş yap.');
   const doc = await ctx.storage.read<UserDoc>(userPath(slug, ctx.secret));
   if (!doc) return fail(401, 'Hesap bulunamadı; yeniden giriş yap.');
-  return { slug, doc };
+  return { slug, user: doc.data };
 }
 
 export async function handle(op: string, method: string, body: Record<string, unknown>, query: Record<string, string>, ctx: Ctx): Promise<Result> {
@@ -104,10 +139,8 @@ export async function handle(op: string, method: string, body: Record<string, un
       }
       user = existing.data;
     } else {
-      if (body.yeniOnay !== true) {
-        // İstemci önce "bu ad boşta mı" bilgisini alsın, kullanıcı onaylasın
-        return ok({ durum: 'yeni' });
-      }
+      // İstemci önce "bu ad boşta" bilgisini alır, kullanıcı onaylarsa hesap açılır
+      if (body.yeniOnay !== true) return ok({ durum: 'yeni' });
       user = { v: 1, ad: name.ad, slug: name.slug, pin: hashPin(pin), olusturma: now, ilerleme: null, ilerlemeZamani: 0 };
       try {
         await ctx.storage.write(path, user, { create: true });
@@ -117,8 +150,8 @@ export async function handle(op: string, method: string, body: Record<string, un
       }
       yeni = true;
     }
-    const board = await updateBoard(ctx, (b) => touch(b, user.slug, user.ad, now));
-    const p = 'oyuncular' in board ? board.oyuncular[user.slug] : undefined;
+    const p = touchPlayer(await readPlayer(ctx, user.slug), user.ad, now);
+    await writePlayer(ctx, user.slug, p);
     return ok({ durum: yeni ? 'olusturuldu' : 'girildi', token: makeToken(user.slug, ctx.secret), profil: profileOf(user, p) });
   }
 
@@ -128,14 +161,18 @@ export async function handle(op: string, method: string, body: Record<string, un
     if ('status' in a) return a;
     const text = JSON.stringify(body.ilerleme ?? null);
     if (text.length > MAX_PROGRESS_BYTES) return fail(413, 'İlerleme verisi çok büyük.');
-    const user: UserDoc = { ...a.doc.data, ilerleme: body.ilerleme ?? null, ilerlemeZamani: now };
-    await ctx.storage.write(userPath(a.slug, ctx.secret), user);
-    const ustalik = body.ustalik as Player['ustalik'] | undefined;
-    if (ustalik && typeof ustalik === 'object') {
-      await updateBoard(ctx, (b) => touch(b, a.slug, user.ad, now, {
-        memleket: Math.max(0, Math.min(100, Number(ustalik.memleket) || 0)),
-        cihan: Math.max(0, Math.min(100, Number(ustalik.cihan) || 0)),
-      }));
+    await ctx.storage.write(userPath(a.slug, ctx.secret), { ...a.user, ilerleme: body.ilerleme ?? null, ilerlemeZamani: now });
+    const u = body.ustalik as Player['ustalik'] | undefined;
+    if (u && typeof u === 'object') {
+      const ustalik = {
+        memleket: Math.max(0, Math.min(100, Math.round(Number(u.memleket) || 0))),
+        cihan: Math.max(0, Math.min(100, Math.round(Number(u.cihan) || 0))),
+      };
+      const prev = await readPlayer(ctx, a.slug);
+      // Yalnızca değiştiyse yaz (depolama işlem kotasını korur)
+      if (!prev?.ustalik || prev.ustalik.memleket !== ustalik.memleket || prev.ustalik.cihan !== ustalik.cihan) {
+        await writePlayer(ctx, a.slug, touchPlayer(prev, a.user.ad, now, ustalik));
+      }
     }
     return ok({ ilerlemeZamani: now });
   }
@@ -150,19 +187,12 @@ export async function handle(op: string, method: string, body: Record<string, un
     };
     const d = body.gunluk as Partial<DailyInput> | undefined;
     const daily: DailyInput | undefined = d && typeof d.key === 'string' ? { key: d.key, score: Number(d.score) } : undefined;
-    let rejected: Result | null = null;
-    const board = await updateBoard(ctx, (b) => {
-      const check = checkRound(r, daily, b.oyuncular[a.slug], now);
-      if (!check.ok) {
-        rejected = fail(check.status, check.error);
-        return rejected;
-      }
-      return applyRound(b, a.slug, a.doc.data.ad, r, daily, now);
-    });
-    if (rejected) return rejected;
-    if (!('oyuncular' in board)) return board;
-    const p = board.oyuncular[a.slug];
-    const view = viewBoard(board, a.slug, now, 3);
+    const prev = await readPlayer(ctx, a.slug);
+    const check = checkRound(r, daily, prev, now);
+    if (!check.ok) return fail(check.status, check.error);
+    const p = applyRoundToPlayer(prev, a.user.ad, r, daily, now);
+    await writePlayer(ctx, a.slug, p);
+    const view = viewBoard(await loadBoard(ctx, now), a.slug, now, 3);
     return ok({
       toplam: p.toplam, turlar: p.turlar, unvan: titleOf(p.toplam, p.ustalik),
       sira: { tum: view.tum.ben?.sira ?? null, haftalik: view.haftalik.ben?.sira ?? null, gunluk: daily ? view.gunluk[r.atlas].ben?.sira ?? null : null },
@@ -172,22 +202,27 @@ export async function handle(op: string, method: string, body: Record<string, un
 
   // ---- Pano (sıralamalar ve anlık seyyah sayısı) ----
   if (op === 'pano' && method === 'GET') {
-    const doc = await ctx.storage.read<Board>(BOARD_PATH);
     const me = query.ben ? String(query.ben) : undefined;
-    return ok(viewBoard(doc?.data ?? emptyBoard(), me, now), { 'cache-control': 'public, max-age=0, s-maxage=15, stale-while-revalidate=30' });
+    const board = await loadBoard(ctx, now);
+    // Kişiye özel ("ben") yanıtlar paylaşılan önbelleğe girmez
+    const cache = me ? 'private, max-age=15' : 'public, max-age=0, s-maxage=30, stale-while-revalidate=60';
+    return ok(viewBoard(board, me, now), { 'cache-control': cache });
   }
 
   // ---- Hesap silme (KVKK) ----
   if (op === 'sil' && method === 'POST') {
     const a = await auth(ctx, body.token);
     if ('status' in a) return a;
-    if (!checkPin(body.pin) || !verifyPin(String(body.pin), a.doc.data.pin)) return fail(403, 'Şifre eşleşmedi.');
-    await updateBoard(ctx, (b) => {
-      const o = { ...b.oyuncular };
-      delete o[a.slug];
-      return { ...b, oyuncular: o };
-    });
+    if (!checkPin(body.pin) || !verifyPin(String(body.pin), a.user.pin)) return fail(403, 'Şifre eşleşmedi.');
+    await ctx.storage.remove(playerPath(a.slug));
     await ctx.storage.remove(userPath(a.slug, ctx.secret));
+    remember(ctx.storage, a.slug, null);
+    const cached = boardCache.get(ctx.storage);
+    if (cached) {
+      const o = { ...cached.board.oyuncular };
+      delete o[a.slug];
+      boardCache.set(ctx.storage, { at: cached.at, board: { ...cached.board, oyuncular: o } });
+    }
     return ok({ silindi: true });
   }
 
