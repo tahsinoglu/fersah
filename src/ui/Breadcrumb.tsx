@@ -9,7 +9,7 @@ export function Breadcrumb({ atlas, selection, onGo }: { atlas: Atlas; selection
   const name = (s: Selection) =>
     s.unitId ? atlas.unitById.get(s.unitId)?.name : s.groupId ? atlas.groupById.get(s.groupId)?.name : atlas.rootName;
   return (
-    <nav aria-label={t.map.breadcrumb} className="glass min-w-0 max-w-full rounded-2xl">
+    <nav aria-label={t.map.breadcrumb} className="glass min-w-0 max-w-full shrink rounded-2xl">
       <ol className="no-scrollbar flex h-12 items-center overflow-x-auto px-1.5">
         {chain.map((s, i) => {
           const last = i === chain.length - 1;

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Navigate, useNavigate, useParams } from 'react-router';
+import { Navigate, useLocation, useNavigate, useParams } from 'react-router';
 import { t } from '../i18n';
 import { ATLAS_IDS, loadAtlas, type AtlasId } from '../data/atlases';
 import { MapView, type MapViewHandle } from '../map-engine/MapView';
@@ -15,7 +15,11 @@ import { Loading } from '../ui/Loading';
 import { Search } from '../ui/Search';
 import { Segmented, TabBar } from '../ui/SectionSwitch';
 import { ThemeMenu } from '../ui/ThemeMenu';
-import { IconTarget } from '../ui/icons';
+import { IconLayers, IconPlay, IconTarget } from '../ui/icons';
+import { ModeSheet } from '../ui/ModeSheet';
+import { masteryOf } from '../progress/leitner';
+import { cardKey, useProgress } from '../progress/store';
+import { isQuizzable } from '../game/content';
 
 const TAB_H = 64;
 const FLOAT_ROW = 60;
@@ -72,6 +76,46 @@ function AtlasScreen({ atlasId, atlas }: { atlasId: AtlasId; atlas: Atlas }) {
   const desktop = useMedia('(min-width: 768px)');
   const safe = useSafeArea();
   const reduced = useMemo(() => prefersReducedMotion(), []);
+  const [playScope, setPlayScope] = useState<string | null>(null);
+  const [learn, setLearn] = useState(() => {
+    try {
+      return sessionStorage.getItem('mc-learn') === '1';
+    } catch {
+      return false;
+    }
+  });
+  const toggleLearn = () =>
+    setLearn((v) => {
+      try {
+        sessionStorage.setItem('mc-learn', v ? '0' : '1');
+      } catch {
+        /* yok say */
+      }
+      return !v;
+    });
+  const progress = useProgress();
+
+  // Öğrenme haritası: bilinme düzeyine göre boya. Seviyeli: kökte bölge ortalaması, bölgede iller.
+  const { paint, groupPaint } = useMemo(() => {
+    if (!learn) return { paint: undefined, groupPaint: undefined };
+    const cls = (v: number | null) => (v === null ? 'p-mn' : `p-m${Math.min(4, Math.round(v * 4))}`);
+    const unitVal = (id: string) => {
+      const c = progress.cards[cardKey(atlasId, id)];
+      return c ? masteryOf(c) : null;
+    };
+    const gp: Record<string, string> = {};
+    const up: Record<string, string> = {};
+    for (const g of atlas.groups) {
+      const vals = g.units.filter((u) => isQuizzable(atlasId, u)).map((u) => unitVal(u.id));
+      const seen = vals.filter((v): v is number => v !== null);
+      if (g.id === selection.groupId) {
+        for (const u of g.units) up[u.id] = isQuizzable(atlasId, u) ? cls(unitVal(u.id)) : 'p-mn';
+      } else {
+        gp[g.id] = cls(seen.length ? vals.reduce<number>((s, v) => s + (v ?? 0), 0) / vals.length : null);
+      }
+    }
+    return { paint: up, groupPaint: gp };
+  }, [learn, progress, atlas, atlasId, selection.groupId]);
 
   useEffect(() => {
     if (parsed.canonical) navigate(parsed.canonical, { replace: true });
@@ -80,14 +124,14 @@ function AtlasScreen({ atlasId, atlas }: { atlasId: AtlasId; atlas: Atlas }) {
   // Esc: bir üst seviye
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      if (e.key !== 'Escape' || e.defaultPrevented || playScope) return;
       const tag = (e.target as HTMLElement | null)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
       up();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [up]);
+  }, [up, playScope]);
 
   const hasPanel = !!selection.groupId;
   const tabH = TAB_H + safe.bottom;
@@ -103,13 +147,6 @@ function AtlasScreen({ atlasId, atlas }: { atlasId: AtlasId; atlas: Atlas }) {
       bottom: tabH + FLOAT_ROW + (hasPanel ? SHEET_PEEK : 0),
     };
   }, [desktop, hasPanel, safe.top, tabH]);
-
-  const switchAtlas = useCallback(
-    (id: AtlasId) => {
-      if (id !== atlasId) navigate(`/${id}`);
-    },
-    [atlasId, navigate],
-  );
 
   const onSearchPick = useCallback(
     (id: AtlasId, sel: Selection) => {
@@ -130,6 +167,8 @@ function AtlasScreen({ atlasId, atlas }: { atlasId: AtlasId; atlas: Atlas }) {
         insets={insets}
         onSelect={go}
         onUp={up}
+        paint={paint}
+        groupPaint={groupPaint}
         reducedMotion={reduced}
         ariaLabel={`${atlas.rootName}. ${t.map.ariaLabel}`}
       />
@@ -142,7 +181,7 @@ function AtlasScreen({ atlasId, atlas }: { atlasId: AtlasId; atlas: Atlas }) {
       >
         {desktop && (
           <div className="pointer-events-auto">
-            <Segmented current={atlasId} onChange={switchAtlas} />
+            <Segmented current={atlasId} />
           </div>
         )}
         <div className="pointer-events-auto flex min-w-0 flex-1 md:max-w-[420px]">
@@ -161,9 +200,28 @@ function AtlasScreen({ atlasId, atlas }: { atlasId: AtlasId; atlas: Atlas }) {
         <div className="pointer-events-auto flex min-w-0 items-center gap-2">
           <Breadcrumb atlas={atlas} selection={selection} onGo={go} />
           {!selection.groupId && (
-            <span className="hidden truncate text-[14px] font-semibold text-[var(--ink-3)] min-[380px]:inline">{t.map[`hintRoot_${atlasId}`]}</span>
+            <button
+              type="button"
+              onClick={() => setPlayScope('tum')}
+              className="pressable flex h-12 shrink-0 items-center gap-2 rounded-2xl bg-[var(--accent)] px-4 text-[15px] font-extrabold text-[var(--on-accent)] shadow-sm"
+            >
+              <IconPlay size={16} />
+              <span className="truncate">{t.game[`playAll_${atlasId}`]}</span>
+            </button>
           )}
         </div>
+        <div className="pointer-events-auto flex flex-col items-end gap-2">
+          {learn && <LearnLegend />}
+          <button
+            type="button"
+            aria-pressed={learn}
+            aria-label={t.game.learningMap}
+            title={t.game.learningMap}
+            onClick={toggleLearn}
+            className={`glass pressable grid h-12 w-12 shrink-0 place-items-center rounded-2xl ${learn ? 'bg-[var(--accent)]! text-[var(--on-accent)]' : 'text-[var(--ink)]'}`}
+          >
+            <IconLayers />
+          </button>
         <button
           type="button"
           aria-label={t.map.recenter}
@@ -173,17 +231,26 @@ function AtlasScreen({ atlasId, atlas }: { atlasId: AtlasId; atlas: Atlas }) {
         >
           <IconTarget />
         </button>
+        </div>
       </div>
 
       {desktop ? (
-        <SidePanel atlasId={atlasId} atlas={atlas} selection={selection} onClose={up} onGo={go} />
+        <SidePanel atlasId={atlasId} atlas={atlas} selection={selection} onClose={up} onGo={go} onPlay={setPlayScope} />
       ) : (
         <>
-          <BottomSheet atlasId={atlasId} atlas={atlas} selection={selection} onClose={up} onGo={go} bottom={tabH} />
+          <BottomSheet atlasId={atlasId} atlas={atlas} selection={selection} onClose={up} onGo={go} onPlay={setPlayScope} bottom={tabH} />
           <div className="absolute inset-x-0 bottom-0 z-30">
-            <TabBar current={atlasId} onChange={switchAtlas} />
+            <TabBar current={atlasId} />
           </div>
         </>
+      )}
+      {playScope && (
+        <ModeSheet
+          atlasId={atlasId}
+          scopeSlug={playScope === 'tum' ? 'tum' : (atlas.groupById.get(playScope)?.slug ?? 'tum')}
+          scopeLabel={playScope === 'tum' ? t.game[`scopeAll_${atlasId}`] : (atlas.groupById.get(playScope)?.name ?? '')}
+          onClose={() => setPlayScope(null)}
+        />
       )}
     </>
   );
@@ -193,8 +260,9 @@ function AtlasScreen({ atlasId, atlas }: { atlasId: AtlasId; atlas: Atlas }) {
 function PendingSelection({ atlasId, atlas, go }: { atlasId: AtlasId; atlas: Atlas; go: (s: Selection) => void }) {
   const done = useRef(false);
   const navigate = useNavigate();
+  const location = useLocation();
   useEffect(() => {
-    const st = window.history.state?.usr as { pending?: Selection } | undefined;
+    const st = location.state as { pending?: Selection } | undefined;
     if (done.current || !st?.pending) return;
     done.current = true;
     const sel = st.pending;
@@ -205,4 +273,21 @@ function PendingSelection({ atlasId, atlas, go }: { atlasId: AtlasId; atlas: Atl
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [atlasId, atlas]);
   return null;
+}
+
+function LearnLegend() {
+  const labels = t.game.learningLegend;
+  const cls = ['--m-n', '--m-0', '--m-1', '--m-2', '--m-3', '--m-4'];
+  return (
+    <div className="glass rounded-2xl px-3 py-2 text-[12px] font-semibold text-[var(--ink-2)]" aria-label={t.game.learningMap}>
+      <ul className="flex flex-col gap-1">
+        {labels.map((l, i) => (
+          <li key={l} className="flex items-center gap-2">
+            <span className="h-3 w-3 rounded-[4px]" style={{ background: `var(${cls[i]})` }} />
+            {l}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 }

@@ -13,7 +13,7 @@ mkdirSync(src, { recursive: true });
 mkdirSync(out, { recursive: true });
 
 const NE = 'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/10m_cultural';
-const LAYERS = ['ne_10m_admin_0_countries_tur', 'ne_10m_admin_1_states_provinces'];
+const LAYERS = ['ne_10m_admin_0_countries_tur', 'ne_10m_admin_1_states_provinces', 'ne_10m_populated_places'];
 
 for (const layer of LAYERS) {
   for (const ext of ['shp', 'dbf', 'prj', 'cpg']) {
@@ -105,6 +105,28 @@ for (const f of ulkeler.features) {
 }
 writeFileSync(ulkeGeo, JSON.stringify(ulkeler));
 
+// Siluet modu için daha ayrıntılı ülke şekilleri (yalnızca o modda yüklenir)
+run([
+  '-i', join(src, 'ne_10m_admin_0_countries_tur.shp'), 'encoding=utf8',
+  '-each', 'id=ADM0_A3', '-filter-fields', 'id',
+  '-simplify', '12%', 'keep-shapes', 'weighting=0.7', '-clean',
+  '-o', 'format=topojson', 'quantization=100000', join(out, 'dunya-siluet.topo.json'),
+]);
+
 run(['-i', ilGeo, 'name=iller', '-o', 'format=topojson', 'quantization=100000', join(out, 'turkiye.topo.json')]);
 run(['-i', ulkeGeo, 'name=ulkeler', '-o', 'format=topojson', 'quantization=100000', join(out, 'dunya.topo.json')]);
+// Başkentler (Natural Earth yerleşimleri, "Admin-0 capital")
+const capCsv = join(src, 'baskentler.json');
+run([
+  '-i', join(src, 'ne_10m_populated_places.shp'), 'encoding=utf8',
+  '-filter', 'FEATURECLA === "Admin-0 capital" && ADM0CAP === 1',
+  '-each', 'ulke=ADM0_A3, ad=NAME_TR || NAME, lon=Math.round(LONGITUDE*1000)/1000, lat=Math.round(LATITUDE*1000)/1000',
+  '-filter-fields', 'ulke,ad,lon,lat',
+  '-o', 'format=json', capCsv,
+]);
+const caps = {};
+for (const c of JSON.parse(readFileSync(capCsv, 'utf8'))) (caps[c.ulke] ??= []).push({ ad: c.ad, lon: c.lon, lat: c.lat });
+for (const k of Object.keys(caps)) caps[k].sort((a, b) => a.ad.localeCompare(b.ad, 'tr'));
+mkdirSync(join(root, 'src', 'data', 'generated'), { recursive: true });
+writeFileSync(join(root, 'src', 'data', 'generated', 'baskentler.json'), JSON.stringify(caps, null, 0));
 console.log('tamam');

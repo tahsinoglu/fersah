@@ -51,6 +51,13 @@
   --on-accent: #ffffff;
   --correct: #4fae7d;
   --wrong: #ef6f67;
+  /* Öğrenme haritası */
+  --m-n: #e4e1da;
+  --m-0: #f2b8a8;
+  --m-1: #f3d3a1;
+  --m-2: #e3dfa0;
+  --m-3: #b9dbae;
+  --m-4: #7fc49a;
 
   /* Hareket */
   --t-hover: 220ms;
@@ -102,6 +109,12 @@
   --on-accent: #062322;
   --correct: #6cc79a;
   --wrong: #f08a82;
+  --m-n: #2a3345;
+  --m-0: #7a4a4f;
+  --m-1: #7a6247;
+  --m-2: #6b6c4a;
+  --m-3: #4d6c55;
+  --m-4: #3f8a66;
 }
 [data-theme='dark'] [data-atlas='cihan'],
 [data-theme='dark'][data-atlas='cihan'] {
@@ -205,4 +218,46 @@ body {
     animation-duration: 1ms !important;
     transition-duration: 1ms !important;
   }
+}
+
+.card-in {
+  animation: card-in 300ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(16px); }
+}
+.toast-in {
+  animation: toast-in 900ms ease both;
+}
+@keyframes toast-in {
+  0% { opacity: 0; transform: translate(-50%, 8px) scale(0.9); }
+  15%, 75% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -6px); }
+}
+
+.sheet-up {
+  animation: sheet-up 340ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes sheet-up {
+  from { transform: translateY(40px); opacity: 0; }
+}
+.sheet-scrim {
+  animation: fade-in 240ms ease both;
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+}
+
+/* Çocuk Köşesi girişi: daha renkli ama sade */
+.kids-card {
+  background: linear-gradient(135deg, #ffd27a 0%, #ffb3a7 45%, #a8d8ff 100%);
+}
+.kids-blob {
+  position: absolute;
+  right: -40px;
+  top: -40px;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.55), transparent 70%);
 }

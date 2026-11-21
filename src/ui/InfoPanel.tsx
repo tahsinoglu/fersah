@@ -3,6 +3,8 @@ import { t } from '../i18n';
 import type { AtlasId } from '../data/atlases';
 import type { Atlas, MapUnit, Selection } from '../map-engine/types';
 import { IconClose, IconPlay } from './icons';
+import { capitalsOf, factOf, isQuizzable, type Fact } from '../game/content';
+import { masteryPercent, useProgress, type Progress } from '../progress/store';
 
 /** Mobil alt sayfanın kapalıyken görünen yüksekliği (px). Kamera hesabı da bunu kullanır. */
 export const SHEET_PEEK = 200;
@@ -22,11 +24,16 @@ interface Content {
   note?: string;
   playLabel: string;
   playable: boolean;
+  /** Oynanacak kapsam (grup kimliği) */
+  scope: string;
+  mastery: number;
+  fact?: Fact;
+  capitals?: string[];
   children: MapUnit[];
   childLabel?: string;
 }
 
-function contentOf(id: AtlasId, atlas: Atlas, sel: Selection): Content | null {
+function contentOf(id: AtlasId, atlas: Atlas, sel: Selection, progress: Progress): Content | null {
   const g = sel.groupId ? atlas.groupById.get(sel.groupId) : undefined;
   if (!g) return null;
   const u = sel.unitId ? atlas.unitById.get(sel.unitId) : undefined;
@@ -39,6 +46,8 @@ function contentOf(id: AtlasId, atlas: Atlas, sel: Selection): Content | null {
       sub: mem ? t.panel.ilCount(kids.length) : t.panel.countryCount(kids.length),
       playLabel: t.panel[`play_group_${id}`],
       playable: g.selectable && kids.length > 0 && g.id !== 'antarktika',
+      scope: g.id,
+      mastery: masteryPercent(progress, id, kids.filter((k) => isQuizzable(id, k)).map((k) => k.id)),
       children: [...kids].sort((a, b) => a.name.localeCompare(b.name, 'tr')),
       childLabel: mem ? 'İller' : 'Ülkeler',
     };
@@ -49,8 +58,12 @@ function contentOf(id: AtlasId, atlas: Atlas, sel: Selection): Content | null {
     title: u.name,
     sub: mem ? t.panel.plaka(String(u.extra.plaka)) : isCountry ? t.panel.population(formatPop(Number(u.extra.nufus))) : t.panel.territory,
     note: !mem && isCountry ? t.panel.populationNote : undefined,
-    playLabel: t.panel[`play_unit_${id}`],
-    playable: isCountry,
+    playLabel: mem ? `${g.name} bölgesini oyna` : `${g.name} kıtasını oyna`,
+    playable: g.id !== 'antarktika',
+    scope: g.id,
+    mastery: isCountry ? masteryPercent(progress, id, [u.id]) : 0,
+    fact: factOf(id, u.id),
+    capitals: !mem && isCountry ? capitalsOf(u.id) : undefined,
     children: [],
   };
 }
@@ -69,7 +82,7 @@ function MasteryRing({ value }: { value: number }) {
   );
 }
 
-function Body({ c, onClose, onPick, peek }: { c: Content; onClose: () => void; onPick: (u: MapUnit) => void; peek?: boolean }) {
+function Body({ c, onClose, onPick, onPlay, peek }: { c: Content; onClose: () => void; onPick: (u: MapUnit) => void; onPlay: (scope: string) => void; peek?: boolean }) {
   return (
     <>
       <div className={peek ? 'flex flex-col' : ''} style={peek ? { minHeight: SHEET_PEEK - 28 } : undefined}>
@@ -80,7 +93,7 @@ function Body({ c, onClose, onPick, peek }: { c: Content; onClose: () => void; o
             <p className="mt-0.5 truncate text-[15px] font-semibold text-[var(--ink-2)]">{c.sub}</p>
             {c.note && <p className="truncate text-[12px] font-medium text-[var(--ink-3)]">{c.note}</p>}
           </div>
-          <MasteryRing value={0} />
+          <MasteryRing value={c.mastery} />
           <button
             type="button"
             onClick={onClose}
@@ -91,20 +104,35 @@ function Body({ c, onClose, onPick, peek }: { c: Content; onClose: () => void; o
           </button>
         </div>
         <div className={peek ? 'mt-auto pt-3' : 'mt-4'}>
-          <button
-            type="button"
-            disabled
-            aria-describedby="play-note"
-            className="flex h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] text-[16px] font-extrabold text-[var(--on-accent)] opacity-55"
-          >
-            <IconPlay size={18} />
-            {c.playLabel}
-          </button>
-          <p id="play-note" className="mt-1.5 text-center text-[12.5px] font-medium text-[var(--ink-3)]">
-            {c.playable ? t.panel.comingSoon : t.panel.notPlayable}
-          </p>
+          {c.playable ? (
+            <button
+              type="button"
+              onClick={() => onPlay(c.scope)}
+              className="pressable flex h-[54px] w-full items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] text-[17px] font-extrabold text-[var(--on-accent)]"
+            >
+              <IconPlay size={18} />
+              {c.playLabel}
+            </button>
+          ) : (
+            <p className="py-3 text-center text-[13px] font-medium text-[var(--ink-3)]">{t.panel.notPlayable}</p>
+          )}
         </div>
       </div>
+      {(c.fact || (c.capitals && c.capitals.length > 0)) && (
+        <div className="mt-4 rounded-2xl bg-[var(--accent-tint)] px-3.5 py-3 text-[15px] leading-snug">
+          {c.capitals && c.capitals.length > 0 && (
+            <p className="font-bold">
+              {c.capitals.length > 1 ? t.game.capitals : t.game.capital}: {c.capitals.join(', ')}
+            </p>
+          )}
+          {c.fact && <p className={c.capitals?.length ? 'mt-1' : ''}>{c.fact.metin}</p>}
+          {c.fact && (
+            <a href={c.fact.kaynak} target="_blank" rel="noreferrer" className="mt-1 inline-block text-[12.5px] font-semibold text-[var(--ink-3)] underline">
+              {t.game.factSource}: Vikipedi
+            </a>
+          )}
+        </div>
+      )}
       {c.children.length > 0 && (
         <div className="mt-5">
           <h3 className="mb-2 text-[12.5px] font-bold uppercase tracking-[0.08em] text-[var(--ink-3)]">{c.childLabel}</h3>
@@ -133,17 +161,19 @@ interface PanelProps {
   selection: Selection;
   onClose: () => void;
   onGo: (s: Selection) => void;
+  onPlay: (scope: string) => void;
 }
 
 /** Son geçerli içeriği tut ki kapanırken boş kalmasın */
 function useStickyContent(atlasId: AtlasId, atlas: Atlas, selection: Selection) {
-  const c = contentOf(atlasId, atlas, selection);
+  const progress = useProgress();
+  const c = contentOf(atlasId, atlas, selection, progress);
   const last = useRef<Content | null>(c);
   if (c) last.current = c;
   return { open: !!c, content: last.current };
 }
 
-export function SidePanel({ atlasId, atlas, selection, onClose, onGo }: PanelProps) {
+export function SidePanel({ atlasId, atlas, selection, onClose, onGo, onPlay }: PanelProps) {
   const { open, content } = useStickyContent(atlasId, atlas, selection);
   return (
     <aside
@@ -154,14 +184,14 @@ export function SidePanel({ atlasId, atlas, selection, onClose, onGo }: PanelPro
       style={{ width: SIDE_PANEL_W, transform: open ? 'none' : `translateX(${SIDE_PANEL_W + 32}px)`, opacity: open ? 1 : 0 }}
     >
       <div className="no-scrollbar flex-1 overflow-y-auto p-5">
-        {content && <Body c={content} onClose={onClose} onPick={(u) => onGo({ groupId: u.groupId, unitId: u.id })} />}
+        {content && <Body c={content} onClose={onClose} onPlay={onPlay} onPick={(u) => onGo({ groupId: u.groupId, unitId: u.id })} />}
       </div>
     </aside>
   );
 }
 
 /** Mobil: alttan yukarı çekilen sayfa. Aşağı çekip bırakınca bir üst seviyeye çıkar. */
-export function BottomSheet({ atlasId, atlas, selection, onClose, onGo, bottom }: PanelProps & { bottom: number }) {
+export function BottomSheet({ atlasId, atlas, selection, onClose, onGo, onPlay, bottom }: PanelProps & { bottom: number }) {
   const { open, content } = useStickyContent(atlasId, atlas, selection);
   const [expanded, setExpanded] = useState(false);
   const [drag, setDrag] = useState<number | null>(null);
@@ -231,7 +261,7 @@ export function BottomSheet({ atlasId, atlas, selection, onClose, onGo, bottom }
         <span className="h-1.5 w-10 rounded-full bg-[var(--ink-3)] opacity-40" />
       </button>
       <div ref={scrollRef} className={`no-scrollbar flex-1 px-5 pb-5 ${expanded ? 'overflow-y-auto' : 'overflow-hidden'}`} style={{ touchAction: expanded ? 'pan-y' : 'none' }}>
-        {content && <Body c={content} peek onClose={onClose} onPick={(u) => onGo({ groupId: u.groupId, unitId: u.id })} />}
+        {content && <Body c={content} peek onClose={onClose} onPlay={onPlay} onPick={(u) => onGo({ groupId: u.groupId, unitId: u.id })} />}
       </div>
     </section>
     </div>

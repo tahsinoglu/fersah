@@ -232,3 +232,126 @@
   .unit, .veil, .hover-line, .lbl, .map-tip { transition-duration: 0ms !important; transition-delay: 0ms !important; }
   .glow, .labels { animation: none; }
 }
+
+/* ---------- Oyun ---------- */
+.mode-pick .unit {
+  cursor: pointer;
+}
+/* Boya sınıfları (oyun ve öğrenme haritası) */
+.map .unit.p-out {
+  fill-opacity: 0.3;
+  cursor: default;
+}
+.map .unit.p-target {
+  fill: var(--accent-glow);
+  fill-opacity: 0.75;
+}
+.map .unit.p-ok {
+  fill: var(--correct);
+}
+.map .unit.p-done {
+  fill: var(--correct);
+  fill-opacity: 0.55;
+}
+.map .unit.p-missed {
+  fill: var(--wrong);
+  fill-opacity: 0.55;
+}
+.map .unit.p-reveal {
+  fill: var(--accent-glow);
+}
+/* Öğrenme haritası: hiç görülmedi → zayıf → iyi bilinir */
+.map .unit.p-mn,
+.map .p-mn .unit { fill: var(--m-n); }
+.map .unit.p-m0,
+.map .p-m0 .unit { fill: var(--m-0); }
+.map .unit.p-m1,
+.map .p-m1 .unit { fill: var(--m-1); }
+.map .unit.p-m2,
+.map .p-m2 .unit { fill: var(--m-2); }
+.map .unit.p-m3,
+.map .p-m3 .unit { fill: var(--m-3); }
+.map .unit.p-m4,
+.map .p-m4 .unit { fill: var(--m-4); }
+
+/* Doğru: nabız gibi hafifçe büyüyüp eski haline döner */
+.fx {
+  pointer-events: none;
+  opacity: 0;
+  vector-effect: non-scaling-stroke;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.fx-ok {
+  fill: var(--correct);
+  stroke: #fff;
+  stroke-width: 1.5;
+}
+.fx-ok.run {
+  animation: fx-pulse 520ms cubic-bezier(.2, .8, .2, 1) both;
+}
+@keyframes fx-pulse {
+  0% { opacity: 1; transform: scale(1); }
+  40% { opacity: 1; transform: scale(1.09); }
+  100% { opacity: 0; transform: scale(1); }
+}
+/* Yanlış: mercan renginde kısa yanıp sönme */
+.fx-bad {
+  fill: var(--wrong);
+}
+.fx-bad.run {
+  animation: fx-blink 560ms ease both;
+}
+@keyframes fx-blink {
+  0%, 40% { opacity: 0.95; }
+  20%, 60% { opacity: 0.35; }
+  100% { opacity: 0; }
+}
+
+.shot-line {
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-dasharray: 6 5;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+  animation: line-in 400ms ease both;
+}
+@keyframes line-in {
+  from { opacity: 0; }
+  to { opacity: 0.8; }
+}
+
+.map-marks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.mark {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  border: 2px solid #fff;
+  animation: mark-in 260ms cubic-bezier(.2, .8, .2, 1.4) both;
+}
+.mark-ok { background: var(--correct); }
+.mark-bad { background: var(--wrong); }
+.mark-pin {
+  width: 14px;
+  height: 14px;
+  background: var(--ink);
+}
+@keyframes mark-in {
+  from { transform: scale(0.3); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-ok.run, .fx-bad.run { animation-duration: 300ms; }
+}

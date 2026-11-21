@@ -1,0 +1,217 @@
+{
+ "TUR": {
+  "metin": "İstanbul Boğazı ve Çanakkale Boğazı Karadeniz'i Akdeniz'e bağlar.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Türkiye",
+  "dogrulandi": false
+ },
+ "RUS": {
+  "metin": "Yüz ölçümü bakımından dünyanın en büyük ülkesidir; 11 saat dilimine yayılır.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Rusya",
+  "dogrulandi": false
+ },
+ "CAN": {
+  "metin": "Dünyanın en uzun kıyı şeridine sahip ülkedir.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Kanada",
+  "dogrulandi": false
+ },
+ "USA": {
+  "metin": "50 eyaletten oluşur. Alaska ve Hawaii ana karadan ayrıdır.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Amerika_Birleşik_Devletleri",
+  "dogrulandi": false
+ },
+ "CHN": {
+  "metin": "Çin Seddi UNESCO Dünya Mirası'dır.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Çin_Seddi",
+  "dogrulandi": false
+ },
+ "BRA": {
+  "metin": "Amazon yağmur ormanlarının büyük bölümü bu ülkededir. Resmî dili Portekizcedir.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Brezilya",
+  "dogrulandi": false
+ },
+ "AUS": {
+  "metin": "Hem ülke hem kıta sayılır. Büyük Set Resifi dünyanın en büyük mercan resifi sistemidir.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Avustralya",
+  "dogrulandi": false
+ },
+ "IND": {
+  "metin": "Tac Mahal UNESCO Dünya Mirası'dır.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Tac_Mahal",
+  "dogrulandi": false
+ },
+ "ARG": {
+  "metin": "And Dağları'nın en yüksek zirvesi Aconcagua bu ülkededir.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Aconcagua",
+  "dogrulandi": false
+ },
+ "KAZ": {
+  "metin": "Dünyanın denize kıyısı olmayan en büyük ülkesidir.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Kazakistan",
+  "dogrulandi": false
+ },
+ "DZA": {
+  "metin": "Yüz ölçümü bakımından Afrika'nın en büyük ülkesidir.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Cezayir",
+  "dogrulandi": false
+ },
+ "COD": {
+  "metin": "Kongo Nehri ülkeyi baştan başa geçer. Afrika'nın en büyük ikinci ülkesidir.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Kongo_Demokratik_Cumhuriyeti",
+  "dogrulandi": false
+ },
+ "SAU": {
+  "metin": "Arap Yarımadası'nın büyük bölümünü kaplar.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Suudi_Arabistan",
+  "dogrulandi": false
+ },
+ "MEX": {
+  "metin": "Maya ve Aztek uygarlıklarının yurdudur. Chichén Itzá UNESCO Dünya Mirası'dır.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Meksika",
+  "dogrulandi": false
+ },
+ "IDN": {
+  "metin": "Binlerce adadan oluşan, dünyanın en büyük takımada ülkesidir.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Endonezya",
+  "dogrulandi": false
+ },
+ "EGY": {
+  "metin": "Gize piramitleri Nil Nehri'nin batı kıyısındadır.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Gize_piramit_kompleksi",
+  "dogrulandi": false
+ },
+ "NGA": {
+  "metin": "Afrika'nın en kalabalık ülkesidir.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Nijerya",
+  "dogrulandi": false
+ },
+ "ZAF": {
+  "metin": "Üç başkenti vardır: Pretoria, Kap Şehri (Cape Town) ve Bloemfontein.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Güney_Afrika_Cumhuriyeti",
+  "dogrulandi": false
+ },
+ "JPN": {
+  "metin": "Dört büyük ve binlerce küçük adadan oluşur. Fuji Dağı en yüksek noktasıdır.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Japonya",
+  "dogrulandi": false
+ },
+ "FRA": {
+  "metin": "Eyfel Kulesi 1889 Paris Dünya Fuarı için yapıldı.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Eyfel_Kulesi",
+  "dogrulandi": false
+ },
+ "DEU": {
+  "metin": "Berlin Duvarı 1989'da yıkıldı, ülke 1990'da yeniden birleşti.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Almanya",
+  "dogrulandi": false
+ },
+ "ITA": {
+  "metin": "İçinde iki bağımsız devlet bulunur: Vatikan ve San Marino.",
+  "kaynak": "https://tr.wikipedia.org/wiki/İtalya",
+  "dogrulandi": false
+ },
+ "GBR": {
+  "metin": "İngiltere, İskoçya, Galler ve Kuzey İrlanda'dan oluşur.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Birleşik_Krallık",
+  "dogrulandi": false
+ },
+ "ESP": {
+  "metin": "İber Yarımadası'nın büyük bölümünü kaplar. Kanarya Adaları da bu ülkeye aittir.",
+  "kaynak": "https://tr.wikipedia.org/wiki/İspanya",
+  "dogrulandi": false
+ },
+ "GRC": {
+  "metin": "Binlerce adası vardır. Akropolis UNESCO Dünya Mirası'dır.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Yunanistan",
+  "dogrulandi": false
+ },
+ "EST": {
+  "metin": "Üç Baltık ülkesinin en kuzeydekisidir.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Estonya",
+  "dogrulandi": false
+ },
+ "NOR": {
+  "metin": "Kıyıları derin fiyortlarla girintilidir.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Norveç",
+  "dogrulandi": false
+ },
+ "ISL": {
+  "metin": "Volkanları ve gayzerleriyle tanınan bir ada ülkesidir.",
+  "kaynak": "https://tr.wikipedia.org/wiki/İzlanda",
+  "dogrulandi": false
+ },
+ "VAT": {
+  "metin": "Dünyanın en küçük bağımsız devletidir.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Vatikan",
+  "dogrulandi": false
+ },
+ "AZE": {
+  "metin": "Hazar Denizi kıyısındadır. Nahçıvan Özerk Cumhuriyeti Türkiye ile sınır komşusudur.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Azerbaycan",
+  "dogrulandi": false
+ },
+ "IRN": {
+  "metin": "Persepolis antik kenti UNESCO Dünya Mirası'dır.",
+  "kaynak": "https://tr.wikipedia.org/wiki/İran",
+  "dogrulandi": false
+ },
+ "PER": {
+  "metin": "İnka kenti Machu Picchu And Dağları'ndadır.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Machu_Picchu",
+  "dogrulandi": false
+ },
+ "CHL": {
+  "metin": "Kuzeyden güneye 4000 km'den uzun, çok dar bir ülkedir. Atacama Çölü buradadır.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Şili",
+  "dogrulandi": false
+ },
+ "NPL": {
+  "metin": "Dünyanın en yüksek dağı Everest, Nepal–Çin sınırındadır.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Everest_Dağı",
+  "dogrulandi": false
+ },
+ "MNG": {
+  "metin": "Dünyanın denize kıyısı olmayan en büyük ikinci ülkesidir.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Moğolistan",
+  "dogrulandi": false
+ },
+ "MDG": {
+  "metin": "Afrika'nın doğusunda, dünyanın en büyük adalarından biridir. Lemurları yalnızca burada yaşar.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Madagaskar",
+  "dogrulandi": false
+ },
+ "KEN": {
+  "metin": "Ekvator ülkeyi ortasından geçer. Masai Mara safarileriyle tanınır.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Kenya",
+  "dogrulandi": false
+ },
+ "ETH": {
+  "metin": "Afrika Birliği'nin genel merkezi başkent Addis Ababa'dadır.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Afrika_Birliği",
+  "dogrulandi": false
+ },
+ "NZL": {
+  "metin": "İki büyük adadan oluşur: Kuzey Ada ve Güney Ada.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Yeni_Zelanda",
+  "dogrulandi": false
+ },
+ "GRL": {
+  "metin": "Dünyanın en büyük adasıdır; Danimarka Krallığı'na bağlıdır.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Grönland",
+  "dogrulandi": false
+ },
+ "CUB": {
+  "metin": "Karayipler'in en büyük adasıdır.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Küba",
+  "dogrulandi": false
+ },
+ "PAK": {
+  "metin": "Dünyanın ikinci yüksek dağı K2, Pakistan–Çin sınırındadır.",
+  "kaynak": "https://tr.wikipedia.org/wiki/K2",
+  "dogrulandi": false
+ },
+ "KOR": {
+  "metin": "Kore Yarımadası'nın güneyindedir.",
+  "kaynak": "https://tr.wikipedia.org/wiki/Güney_Kore",
+  "dogrulandi": false
+ }
+}

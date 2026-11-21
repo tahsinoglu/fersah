@@ -129,7 +129,7 @@ export function buildAtlas(topo: Topology, cfg: AtlasConfig): Atlas {
     return {
       id: def.id, slug, name: def.name, groupId: def.groupId, selectable: def.selectable,
       feature: f, d: path(f) ?? '', bbox: path.bounds(f) as Box, frame: def.box ? projectBox(projection, def.box) : frameOf(path, f),
-      label: lp as Pt, tone: tones[k], extra: def.extra ?? {},
+      label: lp as Pt, tone: tones[k], neighbors: nb[k].map((j) => keptDefs[j].id), extra: def.extra ?? {},
     };
   });
 
@@ -160,5 +160,7 @@ export function buildAtlas(topo: Topology, cfg: AtlasConfig): Atlas {
     unitById: new Map(units.map((u) => [u.id, u])),
     groupById: new Map(groups.map((g) => [g.id, g])),
     groupBorders, outline, frame, extent,
+    project: (p) => (projection(p) as Pt | null) ?? null,
+    invert: (p) => (projection.invert?.(p) as Pt | null) ?? null,
   };
 }

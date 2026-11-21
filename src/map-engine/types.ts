@@ -20,6 +20,8 @@ export interface MapUnit {
   label: Pt;
   /** Aynı renk ailesinde ton sırası (0-3), komşular farklı olsun diye */
   tone: number;
+  /** Sınır komşusu birimler */
+  neighbors: string[];
   extra: Record<string, unknown>;
 }
 
@@ -52,6 +54,10 @@ export interface Atlas {
   frame: Box;
   /** Gezinmeye izin verilen alan */
   extent: Box;
+  /** [boylam, enlem] → projeksiyon koordinatı */
+  project: (lonlat: Pt) => Pt | null;
+  /** projeksiyon koordinatı → [boylam, enlem] */
+  invert: (p: Pt) => Pt | null;
 }
 
 /** Haritadaki seçim yolu: kök → grup → birim */
