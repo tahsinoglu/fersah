@@ -83,7 +83,7 @@ test.describe('oyun', () => {
     await ready(page);
     const box = (await page.locator('svg.map').boundingBox())!;
     await page.mouse.click(box.x + 40, box.y + box.height / 2);
-    await expect(page.getByText(/km uzakta|Tam isabet/)).toBeVisible();
+    await expect(page.getByText(/uzaktasın|Tam isabet/)).toBeVisible();
   });
 
   test('Günün Haritası: günde bir kez oynanır, paylaşım metni cevap içermez', async ({ page }) => {

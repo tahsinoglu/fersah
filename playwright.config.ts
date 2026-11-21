@@ -5,7 +5,7 @@ export default defineConfig({
   timeout: 120_000,
   fullyParallel: true,
   reporter: [['list']],
-  use: { baseURL: 'http://localhost:4173', trace: 'off' },
+  use: { baseURL: 'http://localhost:4173', trace: 'off', storageState: 'tests/misafir.json' },
   webServer: {
     command: 'npx vite build && npx vite preview --port 4173 --strictPort',
     url: 'http://localhost:4173',

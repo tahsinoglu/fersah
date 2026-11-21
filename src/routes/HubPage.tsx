@@ -8,6 +8,9 @@ import { formatDuration } from '../scoring/score';
 import { ModeIcon } from '../ui/ModeIcon';
 import { SectionTitle, Shell } from '../ui/Shell';
 import { IconChevron } from '../ui/icons';
+import { useState } from 'react';
+import { useAccount } from '../account/account';
+import { LoginDialog, PresenceLine, usePano } from '../account/ui';
 
 const TILE: Record<string, string> = { dogru: 'bg-[var(--correct)]', yakin: 'bg-[#e3b54a]', yanlis: 'bg-[var(--wrong)]' };
 
@@ -73,8 +76,28 @@ function QuickRow({ atlasId }: { atlasId: AtlasId }) {
 }
 
 export function HubPage() {
+  const { hesap } = useAccount();
+  const view = usePano();
+  const [login, setLogin] = useState(false);
   return (
     <Shell section="oyna" title={t.hub.title}>
+      <section className="flex flex-col gap-2">
+        {hesap ? (
+          <p className="font-display text-[22px] font-semibold leading-tight">
+            Merhaba, {hesap.ad}
+            <span className="mt-0.5 block font-sans text-[15px] font-medium text-[var(--ink-2)]">
+              {hesap.unvan} · {hesap.toplam.toLocaleString('tr-TR')} puan
+            </span>
+          </p>
+        ) : (
+          <button type="button" onClick={() => setLogin(true)} className="glass pressable flex h-12 items-center justify-between rounded-2xl px-4 text-left text-[15px] font-semibold">
+            Kullanıcı adı seç, puanların saklansın
+            <IconChevron className="text-[var(--ink-3)]" />
+          </button>
+        )}
+        <PresenceLine view={view} />
+      </section>
+      {login && <LoginDialog onClose={() => setLogin(false)} />}
       <Link
         to="/cocuk"
         className="kids-entry pressable relative overflow-hidden rounded-[26px] p-5 text-[#1d2433] shadow-md"

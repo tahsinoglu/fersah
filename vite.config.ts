@@ -4,6 +4,39 @@ import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 import { readFileSync } from 'node:fs';
+import type { IncomingMessage, ServerResponse } from 'node:http';
+import type { Plugin } from 'vite';
+import { handle } from './server/handler';
+import { LocalStorage } from './server/storage';
+
+/** Yerel geliştirme ve önizleme: /api/fersah aynı sunucu koduyla, .data/ klasöründe saklanır */
+function fersahApi(): Plugin {
+  const storage = new LocalStorage('.data');
+  const mw = async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
+    if (!req.url?.startsWith('/api/fersah')) return next();
+    const url = new URL(req.url, 'http://yerel');
+    let raw = '';
+    for await (const chunk of req) raw += chunk;
+    let body: Record<string, unknown> = {};
+    try {
+      body = raw ? JSON.parse(raw) : {};
+    } catch {
+      /* boş */
+    }
+    const r = await handle(url.searchParams.get('op') ?? '', req.method ?? 'GET', body, Object.fromEntries(url.searchParams), {
+      storage,
+      secret: 'yerel-gelistirme-sirri',
+    });
+    res.statusCode = r.status;
+    res.setHeader('content-type', 'application/json; charset=utf-8');
+    res.end(JSON.stringify(r.body));
+  };
+  return {
+    name: 'fersah-api',
+    configureServer: (server) => void server.middlewares.use(mw),
+    configurePreviewServer: (server) => void server.middlewares.use(mw),
+  };
+}
 
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string };
 
@@ -11,6 +44,7 @@ export default defineConfig(({ mode }) => ({
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   base: mode === 'preview-static' ? './' : '/',
   plugins: [
+    fersahApi(),
     react(),
     tailwindcss(),
     mode !== 'preview-static' &&
@@ -48,11 +82,12 @@ export default defineConfig(({ mode }) => ({
             },
           ],
           navigateFallback: '/index.html',
+          navigateFallbackDenylist: [/^\/api\//],
           maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         },
       }),
   ],
   test: {
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'server/**/*.test.ts'],
   },
 }));

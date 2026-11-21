@@ -100,6 +100,30 @@ export function recordDaily(atlas: string, rec: DailyRecord) {
   commit({ ...state, daily: { ...state.daily, [`${atlas}:${rec.key}`]: rec } });
 }
 
+/** İki cihazın ilerlemesini kayıpsız birleştirir (hesapla girişte) */
+export function mergeProgress(a: Progress, b: Progress): Progress {
+  const cards = { ...a.cards };
+  for (const [k, c] of Object.entries(b.cards ?? {})) {
+    const cur = cards[k];
+    if (!cur || c.seen > cur.seen || (c.seen === cur.seen && c.last > cur.last)) cards[k] = c;
+  }
+  const rounds = [...(a.rounds ?? []), ...(b.rounds ?? [])]
+    .filter((r, i, arr) => arr.findIndex((x) => x.at === r.at && x.mode === r.mode && x.atlas === r.atlas) === i)
+    .sort((x, y) => x.at - y.at)
+    .slice(-500);
+  const best = { ...a.best };
+  for (const [k, ms] of Object.entries(b.best ?? {})) if (!best[k] || ms < best[k]) best[k] = ms;
+  const daily = { ...(b.daily ?? {}), ...a.daily };
+  const days = [...new Set([...(a.days ?? []), ...(b.days ?? [])])].sort();
+  return { v: 1, cards, rounds, best, daily, days };
+}
+
+/** Sunucudan gelen ilerlemeyi yerelle birleştirip kaydet */
+export function adoptProgress(remote: unknown) {
+  if (!remote || typeof remote !== 'object' || (remote as Progress).v !== 1) return;
+  commit(mergeProgress(state, { ...empty(), ...(remote as Progress) }));
+}
+
 export function resetProgress() {
   commit(empty());
 }

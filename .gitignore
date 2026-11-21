@@ -8,3 +8,4 @@ playwright-report
 dist-preview
 .vercel
 .env*
+.data

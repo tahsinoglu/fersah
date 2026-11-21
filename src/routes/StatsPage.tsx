@@ -8,6 +8,7 @@ import { formatDuration } from '../scoring/score';
 import { scopeName } from '../game/content';
 import { SectionTitle, Shell } from '../ui/Shell';
 import { IconLayers } from '../ui/icons';
+import { AccountCard, Leaderboard, LoginDialog, PresenceLine, usePano } from '../account/ui';
 
 function Tile({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
@@ -24,6 +25,8 @@ export function StatsPage() {
   const navigate = useNavigate();
   const [atlases, setAtlases] = useState<Partial<Record<AtlasId, Atlas>>>({});
   const [confirm, setConfirm] = useState(false);
+  const [login, setLogin] = useState(false);
+  const view = usePano(30_000);
 
   useEffect(() => {
     loadAtlas('memleket').then((a) => setAtlases((x) => ({ ...x, memleket: a })));
@@ -65,6 +68,11 @@ export function StatsPage() {
 
   return (
     <Shell section="istatistik" title={t.stats.title}>
+      <AccountCard onLogin={() => setLogin(true)} />
+      <PresenceLine view={view} />
+      <Leaderboard view={view} onLogin={() => setLogin(true)} />
+      {login && <LoginDialog onClose={() => setLogin(false)} />}
+      <SectionTitle>İstatistiklerim</SectionTitle>
       {seen === 0 && <p className="glass rounded-2xl p-4 text-[15px] font-semibold text-[var(--ink-2)]">{t.stats.noData}</p>}
       <div className="grid grid-cols-2 gap-3">
         <Tile label={t.stats.accuracy} value={seen ? `%${Math.round((correct / seen) * 100)}` : '–'} sub={`${correct}/${seen}`} />
@@ -115,7 +123,11 @@ export function StatsPage() {
       )}
 
       <section className="flex flex-col gap-2">
-        <p className="text-[13px] font-medium text-[var(--ink-3)]">{t.stats.privacy}</p>
+        <p className="text-[13px] font-medium text-[var(--ink-3)]">
+          Gizlilik: Fersah yalnızca seçtiğin kullanıcı adını, 4 haneli şifrenin geri çözülemez özetini, puanlarını ve öğrenme ilerlemeni saklar.
+          Gerçek adın, e-postan, konumun ya da reklam kimliğin istenmez ve toplanmaz. Hesabını yukarıdan istediğin an silebilirsin. Küçük Seyyah
+          bölümünde hiçbir hesap ve veri kullanılmaz; ilerleme yalnızca cihazda kalır.
+        </p>
         {confirm ? (
           <div className="glass flex flex-col gap-2 rounded-2xl p-4" role="alertdialog" aria-label={t.stats.resetConfirm}>
             <p className="text-[15px] font-semibold">{t.stats.resetConfirm}</p>

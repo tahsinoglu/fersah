@@ -1,5 +1,7 @@
 import { lazy, Suspense, type ComponentType, type ReactNode } from 'react';
-import { createBrowserRouter, createMemoryRouter, Navigate, RouterProvider } from 'react-router';
+import { createBrowserRouter, createMemoryRouter, Navigate, Outlet, RouterProvider, useLocation } from 'react-router';
+import { CelebrationHost } from './account/celebrate';
+import { LoginGate } from './account/ui';
 import { AtlasPage } from './routes/AtlasPage';
 import { Loading } from './ui/Loading';
 
@@ -17,7 +19,19 @@ const ExplorePage = named(() => import('./kids/KidsRoutes'), 'ExplorePage');
 
 const s = (node: ReactNode) => <Suspense fallback={<Loading />}>{node}</Suspense>;
 
-const routes = [
+/** Tüm sayfaların çerçevesi: kutlama şeridi ve (Küçük Seyyah dışında) ilk açılışta giriş penceresi */
+function Root() {
+  const loc = useLocation();
+  return (
+    <>
+      <Outlet />
+      {!loc.pathname.startsWith('/cocuk') && <LoginGate />}
+      <CelebrationHost />
+    </>
+  );
+}
+
+const children = [
   { path: '/', element: <Navigate to="/memleket" replace /> },
   { path: '/demo', element: <Navigate to="/memleket" replace /> },
   { path: '/oyna', element: s(<HubPage />) },
@@ -40,6 +54,8 @@ const routes = [
 ];
 
 // Önizleme yayınında (tek dosya, çerçeve içinde) adres çubuğu kullanılamaz; gezinme bellekte tutulur
+const routes = [{ element: <Root />, children }];
+
 const router =
   import.meta.env.VITE_PREVIEW === '1'
     ? createMemoryRouter(routes, { initialEntries: ['/memleket'] })

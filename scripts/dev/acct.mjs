@@ -1,0 +1,17 @@
+import { chromium, devices } from 'playwright';
+const out = process.argv[2];
+const b = await chromium.launch();
+const p = await (await b.newContext({ ...devices['iPhone 13'] })).newPage();
+const errs = []; p.on('pageerror', e => errs.push(String(e)));
+await p.goto('http://localhost:5173/oyna'); await p.waitForTimeout(800);
+await p.screenshot({ path: `${out}/a1.png` });
+const d = p.getByRole('dialog');
+await d.getByLabel('Kullanıcı adı').fill('tahsinoglu'); await d.getByLabel('4 haneli şifre').fill('1234');
+await d.getByRole('button', { name: 'Devam' }).tap(); await p.waitForTimeout(500);
+if (await d.getByRole('button', { name: 'Evet, bu adla başla' }).count()) await d.getByRole('button', { name: 'Evet, bu adla başla' }).tap();
+await p.waitForTimeout(700);
+await p.screenshot({ path: `${out}/a2.png` });
+await p.goto('http://localhost:5173/istatistik'); await p.waitForTimeout(1200);
+await p.screenshot({ path: `${out}/a3.png` });
+console.log('errors', errs);
+await b.close();

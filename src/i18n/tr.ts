@@ -14,7 +14,7 @@ export const tr = {
     memleket: 'Memleket',
     cihan: 'Cihan',
     oyna: 'Oyna',
-    istatistik: 'İstatistik',
+    istatistik: 'Sıralama',
     sections: 'Bölümler',
   },
   search: {
@@ -131,7 +131,7 @@ export const tr = {
     kidsDesc: 'Yapboz, sesli sorular ve renkli harita. Süre yok, sayaç yok.',
   },
   stats: {
-    title: 'İstatistiklerim',
+    title: 'Sıralama',
     accuracy: 'Doğruluk',
     rounds: 'Oynanan tur',
     answered: 'Cevaplanan soru',

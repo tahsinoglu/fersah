@@ -1,0 +1,9 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "http://localhost:4173",
+      "localStorage": [{ "name": "mc-hesap-v1", "value": "{\"hesap\":null,\"misafir\":true,\"bekleyen\":[]}" }]
+    }
+  ]
+}
