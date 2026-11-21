@@ -66,8 +66,9 @@ async function apiTest(base: string) {
   const tur2 = await call('tur', { token, tur: { atlas: 'cihan', mode: 'bul', total: 10, correct: 5, score: 500, ms: 40000 } });
   log('api ikinci tur', tur2.status, tur2.body?.toplam === 1600 ? 'TAMAM' : JSON.stringify(tur2.body));
   await new Promise((r) => setTimeout(r, 3000));
-  const p2 = await call('pano');
-  log('api pano sonrası', JSON.stringify((p2.body as { tum?: { ust?: unknown[] } })?.tum?.ust?.slice(0, 3)));
+  const p2 = await call(`pano&ben=${ad}`);
+  const ben = (p2.body as { tum?: { ben?: { puan?: number; sira?: number } } })?.tum?.ben;
+  log('api pano (kendi sıram)', ben?.puan === 1600 ? 'TAMAM' : 'HATA', JSON.stringify(ben), 'aktif', (p2.body as { aktif?: number })?.aktif);
   const g3 = await call('giris', { ad, pin: '4321' });
   log('api tekrar giris', g3.status, (g3.body?.profil as { toplam?: number } | undefined)?.toplam === 1600 ? 'TAMAM' : JSON.stringify(g3.body));
   const yanlis = await call('giris', { ad, pin: '0000' });
