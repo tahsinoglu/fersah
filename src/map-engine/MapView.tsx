@@ -121,7 +121,7 @@ interface LabelSpec {
   p: Pt;
   w: number;
   h: number;
-  kind: 'group' | 'unit';
+  kind: 'group' | 'unit' | 'minor';
   always: boolean;
   selected: boolean;
 }
@@ -167,12 +167,18 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
   const labelSpecs = useMemo<LabelSpec[]>(() => {
     if (!labels) return [];
     const box = (b: Box) => ({ w: b[1][0] - b[0][0], h: b[1][1] - b[0][1] });
+    const area = (u: MapUnit) => (u.bbox[1][0] - u.bbox[0][0]) * (u.bbox[1][1] - u.bbox[0][1]);
     if (depth === 0) {
-      return atlas.groups
+      // Genel görünüm: önce bölge/kıta adları, sonra sığdığı kadar il/ülke adları (büyükten küçüğe)
+      const groups = atlas.groups
         .filter((g) => g.units.length > 0 && g.id !== 'antarktika')
         .map((g) => ({ key: `g:${g.id}`, text: g.name, p: g.label, ...box(g.frame), kind: 'group' as const, always: true, selected: false }));
+      const units = atlas.units
+        .filter((u) => u.selectable && u.groupId !== 'antarktika')
+        .sort((a, b) => area(b) - area(a))
+        .map((u) => ({ key: `u:${u.id}`, text: u.name, p: u.label, ...box(u.bbox), kind: 'minor' as const, always: false, selected: false }));
+      return [...groups, ...units];
     }
-    const area = (u: MapUnit) => (u.bbox[1][0] - u.bbox[0][0]) * (u.bbox[1][1] - u.bbox[0][1]);
     const units = (focusGroup?.units.filter((u) => u.selectable) ?? []).sort(
       (a, b) => Number(b.id === selection.unitId) - Number(a.id === selection.unitId) || area(b) - area(a),
     );
@@ -212,7 +218,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
       for (const el of Array.from(lg.children) as SVGTextElement[]) {
         const px = Number(el.dataset.px);
         const py = Number(el.dataset.py);
-        const base = el.dataset.kind === 'group' ? 16 : 13.5;
+        const base = el.dataset.kind === 'group' ? (live.current.atlas.id === 'cihan' ? 13 : 16) : el.dataset.kind === 'minor' ? 10.5 : 13.5;
         const fs = base * scale;
         const sw = Number(el.dataset.w) * t.k;
         const sh = Number(el.dataset.h) * t.k;
@@ -220,7 +226,9 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
         const tw = chars * fs * 0.56;
         const sx = t.x + t.k * px;
         const sy = t.y + t.k * py;
-        let fits = el.dataset.always === '1' || (tw <= sw * 1.05 && fs * 1.1 <= sh);
+        const minor = el.dataset.kind === 'minor';
+        // İl/ülke adları genel görünümde biraz taşabilir (çakışma denetimi yine korur)
+        let fits = el.dataset.always === '1' || (minor ? tw <= sw * 1.7 && fs <= sh * 1.3 : tw <= sw * 1.05 && fs * 1.1 <= sh);
         // Çakışma: öncelik sırasına göre (DOM sırası) yerleşen etiketlerle üst üste binen gizlenir
         const r = { x0: sx - tw / 2 - 3, x1: sx + tw / 2 + 3, y0: sy - fs * 0.62, y1: sy + fs * 0.62 };
         if (fits && placed.some((q) => r.x0 < q.x1 && r.x1 > q.x0 && r.y0 < q.y1 && r.y1 > q.y0)) fits = false;

@@ -89,7 +89,7 @@ function Body({ c, onClose, onPick, onPlay, peek }: { c: Content; onClose: () =>
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
             <p className="truncate text-[12.5px] font-bold uppercase tracking-[0.08em] text-[var(--ink-3)]">{c.eyebrow}</p>
-            <h2 className="mt-0.5 truncate text-[26px] font-extrabold leading-tight tracking-tight">{c.title}</h2>
+            <h2 className="mt-0.5 line-clamp-2 text-[23px] font-semibold leading-tight">{c.title}</h2>
             <p className="mt-0.5 truncate text-[15px] font-semibold text-[var(--ink-2)]">{c.sub}</p>
             {c.note && <p className="truncate text-[12px] font-medium text-[var(--ink-3)]">{c.note}</p>}
           </div>

@@ -102,7 +102,7 @@ test.describe('oyun', () => {
       await page.waitForTimeout(200);
     }
     const share = (await page.locator('pre').textContent())!;
-    expect(share).toMatch(/^Cihan · Günün Haritası #\d+\n[🟩🟨🟥]{10}\n\d+\/10 · \d+ puan · \d+:\d\d$/u);
+    expect(share).toMatch(/^Fersah · Cihan · Günün Haritası #\d+\n[🟩🟨🟥]{10}\n\d+\/10 · \d+ puan · \d+:\d\d\nfersah\.vercel\.app$/u);
     // Tekrar girince soru değil sonuç gösterilir
     await page.goto('/gunluk/cihan');
     await expect(page.getByText('Tur bitti')).toBeVisible();

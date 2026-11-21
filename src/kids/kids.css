@@ -12,15 +12,16 @@
   --group-line: #ffffff;
   --coast-line: rgba(120, 90, 50, 0.3);
   --hot-line: rgba(29, 36, 51, 0.6);
-  --accent: #ef7d57;
+  --accent: #b8553b;
   --accent-glow: #ffb86b;
-  --correct: #4fbf7f;
-  --wrong: #ffb36b;
+  --correct: #34a169;
+  --wrong: #f2b33d;
   /* Aynı dokunma hissi, sadece daha yavaş */
   --t-hover: 320ms;
   --t-dim: 620ms;
   --t-reveal-delay: 220ms;
   background-color: var(--bg);
+  font-family: var(--font-display);
   background-image: radial-gradient(var(--bg-dot) 1.2px, transparent 1.6px);
   background-size: 26px 26px;
   color: var(--ink);
@@ -75,15 +76,16 @@
   width: 100%;
   min-height: 56px;
   border-radius: 20px;
-  background: #ef7d57;
+  background: #b8553b;
   color: #fff;
-  font-weight: 800;
-  box-shadow: 0 4px 0 #c9603d;
+  font-weight: 700;
+  font-family: var(--font-display);
+  box-shadow: 0 4px 0 #8f3f2b;
   transition: transform 150ms ease, box-shadow 150ms ease;
 }
 .kids-btn:active {
   transform: translateY(3px);
-  box-shadow: 0 1px 0 #c9603d;
+  box-shadow: 0 1px 0 #8f3f2b;
 }
 .kids-btn.secondary {
   background: #fff;

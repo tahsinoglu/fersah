@@ -200,6 +200,13 @@
   font-weight: 700;
   letter-spacing: 0.02em;
 }
+.lbl-minor {
+  font-weight: 500;
+  fill: var(--ink-2);
+}
+.lbl-group {
+  font-family: var(--font-display);
+}
 .lbl-sel {
   font-weight: 800;
 }

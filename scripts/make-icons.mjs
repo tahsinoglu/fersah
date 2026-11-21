@@ -1,20 +1,18 @@
-// public/icons/icon.svg'den PNG ikonları üretir (Playwright ile)
+// public/icons/icon.svg'den PNG uygulama ikonları üretir (Playwright ile). Kimlik rehberi: beyaz zeminde işaret.
 import { chromium } from 'playwright';
 import { readFileSync } from 'node:fs';
 const svg = readFileSync('public/icons/icon.svg', 'utf8');
 const b = await chromium.launch();
 const p = await b.newPage();
-async function shot(size, file, pad = 0, bg = 'transparent') {
+async function shot(size, file, markRatio, bg) {
   await p.setViewportSize({ width: size, height: size });
-  const inner = size - pad * 2;
-  await p.setContent(`<html><body style="margin:0;background:${bg}"><div style="padding:${pad}px;width:${inner}px;height:${inner}px">${svg.replace('<svg ', `<svg width="${inner}" height="${inner}" `)}</div></body></html>`);
+  const m = Math.round(size * markRatio);
+  await p.setContent(`<html><body style="margin:0;width:${size}px;height:${size}px;display:grid;place-items:center;background:${bg}">${svg.replace('<svg ', `<svg width="${m}" height="${m}" `)}</body></html>`);
   await p.screenshot({ path: `public/icons/${file}`, omitBackground: bg === 'transparent' });
 }
-await shot(192, 'icon-192.png');
-await shot(512, 'icon-512.png');
-await shot(180, 'apple-touch-icon.png', 0, '#1a8f93');
-// Maskelenebilir ikon: kenarları dolu, güvenli alan içinde
-await p.setViewportSize({ width: 512, height: 512 });
-await p.setContent(`<html><body style="margin:0;background:linear-gradient(135deg,#14a9a4,#1c5f6e)"><div style="padding:64px">${svg.replace('<rect width="512" height="512" rx="112" fill="url(#g)"/>', '').replace('<svg ', '<svg width="384" height="384" ')}</div></body></html>`);
-await p.screenshot({ path: 'public/icons/icon-maskable-512.png' });
+await shot(192, 'icon-192.png', 0.86, '#FFFFFF');
+await shot(512, 'icon-512.png', 0.86, '#FFFFFF');
+await shot(180, 'apple-touch-icon.png', 0.8, '#FFFFFF');
+// Maskelenebilir: güvenli alan (%80 daire) içinde
+await shot(512, 'icon-maskable-512.png', 0.62, '#FFFFFF');
 await b.close();

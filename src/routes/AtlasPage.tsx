@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Navigate, useLocation, useNavigate, useParams } from 'react-router';
+import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router';
+import { FersahLogo, FersahMark } from '../ui/Logo';
 import { t } from '../i18n';
 import { ATLAS_IDS, loadAtlas, type AtlasId } from '../data/atlases';
 import { MapView, type MapViewHandle } from '../map-engine/MapView';
@@ -179,10 +180,17 @@ function AtlasScreen({ atlasId, atlas }: { atlasId: AtlasId; atlas: Atlas }) {
         className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start gap-2 px-3 md:px-4"
         style={{ paddingTop: desktop ? 16 : safe.top + 10 }}
       >
-        {desktop && (
-          <div className="pointer-events-auto">
+        {desktop ? (
+          <div className="pointer-events-auto flex items-center gap-4">
+            <Link to="/oyna" aria-label="Fersah ana sayfa" className="pressable glass flex h-12 items-center rounded-2xl px-3">
+              <FersahLogo size={22} ground="var(--surface)" />
+            </Link>
             <Segmented current={atlasId} />
           </div>
+        ) : (
+          <Link to="/oyna" aria-label="Fersah ana sayfa" className="glass pressable pointer-events-auto grid h-12 w-12 shrink-0 place-items-center rounded-2xl">
+            <FersahMark size={30} ground="var(--surface)" />
+          </Link>
         )}
         <div className="pointer-events-auto flex min-w-0 flex-1 md:max-w-[420px]">
           <Search current={atlasId} onPick={onSearchPick} />

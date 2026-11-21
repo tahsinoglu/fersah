@@ -98,7 +98,7 @@ function KidsHeader({ title, back }: { title: string; back?: string }) {
           <IconBack size={28} />
         </Link>
       ) : (
-        <button type="button" onClick={() => setLock(true)} className="kids-icon-btn" aria-label="Büyükler: Çocuk Köşesi'nden çık">
+        <button type="button" onClick={() => setLock(true)} className="kids-icon-btn" aria-label="Büyükler: Küçük Seyyah'tan çık">
           <IconBack size={28} />
         </button>
       )}
@@ -123,7 +123,7 @@ const TILES: { to: string; title: string; color: string; icon: string }[] = [
 export function KidsHome() {
   return (
     <div className="flex h-full flex-col">
-      <KidsHeader title="Çocuk Köşesi" />
+      <KidsHeader title="Küçük Seyyah" />
       <main className="no-scrollbar flex-1 overflow-y-auto px-4 pb-8">
         <div className="mx-auto grid max-w-[640px] grid-cols-2 gap-4">
           {TILES.map((tile) => {

@@ -1,7 +1,11 @@
+/** 1 fersah ≈ 5,685 km (Osmanlı uzunluk ölçüsü) */
+export const FERSAH_KM = 5.685;
+const fersah = (km: number) => (km / FERSAH_KM).toLocaleString('tr-TR', { maximumFractionDigits: km / FERSAH_KM < 10 ? 1 : 0 });
+
 // Arayüz metinleri. Yeni dil eklemek için bu dosyanın kopyasını oluşturup çevirin.
 export const tr = {
   app: {
-    name: 'Memleket & Cihan',
+    name: 'Fersah',
     loading: 'Tefekkür ediliyor…',
     loadError: 'Harita yüklenemedi. Bağlantını kontrol edip tekrar dene.',
     retry: 'Tekrar dene',
@@ -51,7 +55,7 @@ export const tr = {
   },
   modes: {
     bul: { name: 'Haritada Bul', desc: 'Adı verilen yeri haritada bul.' },
-    neresi: { name: 'Bu Neresi?', desc: 'Parlayan yeri dört şıktan seç.' },
+    neresi: { name: 'Burası Neresi?', desc: 'Parlayan yeri dört şıktan seç.' },
     yakin: { name: 'Yakın Atış', desc: 'Ne kadar yakına dokunursan o kadar puan.' },
     siluet: { name: 'Siluet', desc: 'Sadece şekline bakıp tahmin et.' },
     hepsi: { name: 'Hepsini Bitir', desc: 'Kapsamdaki her yeri bul, rekorunu kır.' },
@@ -65,7 +69,7 @@ export const tr = {
     playAll_cihan: 'Dünyayı oyna',
     playGroup: (name: string) => `${name} oyna`,
     findPrompt: 'Haritada bul',
-    whereisPrompt: 'Bu neresi?',
+    whereisPrompt: 'Burası neresi?',
     nearPrompt: 'Olabildiğince yakına dokun',
     silhouettePrompt: 'Bu siluet hangisi?',
     correct: 'Doğru!',
@@ -73,7 +77,10 @@ export const tr = {
     yourPick: (name: string) => `Senin seçimin: ${name}`,
     answerWas: (name: string) => `Doğru cevap: ${name}`,
     inside: 'Tam isabet!',
-    distance: (km: number) => `${km.toLocaleString('tr-TR')} km uzakta`,
+    distance: (km: number) => `Hedefe ${fersah(km)} fersah (${km.toLocaleString('tr-TR')} km) uzaktasın`,
+    tappedOn: (name: string) => `Dokunduğun yer: ${name}`,
+    tappedSea: 'Denize dokundun',
+    between: (a: string, b: string, km: number) => `${a} ile ${b} arası ${km.toLocaleString('tr-TR')} km (${fersah(km)} fersah)`,
     points: (n: number) => `${n.toLocaleString('tr-TR')} puan`,
     next: 'Devam',
     finish: 'Sonuçları gör',
@@ -100,8 +107,8 @@ export const tr = {
     learningLegend: ['Görülmedi', 'Zayıf', 'Gelişiyor', 'İyi', 'Çok iyi', 'Usta'],
   },
   daily: {
-    title_memleket: 'Memleket · Günün Haritası',
-    title_cihan: 'Cihan · Günün Haritası',
+    title_memleket: 'Fersah · Memleket · Günün Haritası',
+    title_cihan: 'Fersah · Cihan · Günün Haritası',
     play: 'Bugünün sorularını çöz',
     done: 'Bugünkünü çözdün',
     nextIn: 'Yeni harita yarın',
@@ -114,7 +121,7 @@ export const tr = {
   hub: {
     title: 'Oyna',
     quick: 'Hızlı başla',
-    kidsTitle: 'Çocuk Köşesi',
+    kidsTitle: 'Küçük Seyyah',
     kidsDesc: 'Yapboz, sesli sorular ve renkli harita. Süre yok, sayaç yok.',
   },
   stats: {

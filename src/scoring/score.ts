@@ -31,7 +31,7 @@ export function formatDuration(ms: number): string {
 }
 
 /** Wordle tarzı paylaşım metni; cevapları ele vermez */
-export function shareText(o: { title: string; number: number; tiles: Tile[]; score: number; ms: number }): string {
+export function shareText(o: { title: string; number: number; tiles: Tile[]; score: number; ms: number; url?: string }): string {
   const correct = o.tiles.filter((t) => t === 'dogru').length;
-  return `${o.title} #${o.number}\n${o.tiles.map((t) => EMOJI[t]).join('')}\n${correct}/${o.tiles.length} · ${o.score} puan · ${formatDuration(o.ms)}`;
+  return `${o.title} #${o.number}\n${o.tiles.map((t) => EMOJI[t]).join('')}\n${correct}/${o.tiles.length} · ${o.score} puan · ${formatDuration(o.ms)}${o.url ? `\n${o.url}` : ''}`;
 }

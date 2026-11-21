@@ -13,6 +13,7 @@ import { weightOf } from '../progress/leitner';
 import { cardKey, getProgress, recordAnswer, recordDaily, recordRound, useProgress } from '../progress/store';
 import { accusative, capitalsOf, factOf, scopeName, scopeUnits, toItems } from '../game/content';
 import { evaluateChoice, evaluateNear, type Answer } from '../game/evaluate';
+import { haversineKm } from '../scoring/geo';
 import { prefersReducedMotion } from '../lib/theme';
 import { useSafeArea } from '../lib/viewport';
 import { pathFor } from '../lib/routes';
@@ -229,7 +230,7 @@ function Game({ atlasId, atlas, mode, scope }: { atlasId: AtlasId; atlas: Atlas;
     const ms = performance.now() - qStartRef.current;
     if (q.kind === 'yakin') {
       busy.current = true;
-      const a = evaluateNear(q.target, target.feature, lonlat, ms, NEAR_SCALE_KM[atlasId]);
+      const a = { ...evaluateNear(q.target, target.feature, lonlat, ms, NEAR_SCALE_KM[atlasId]), picked: unitId };
       const all = commit(a);
       if (lonlat) {
         setMarks([{ id: 'pin', kind: 'pin', at: lonlat }]);
@@ -305,7 +306,7 @@ function Game({ atlasId, atlas, mode, scope }: { atlasId: AtlasId; atlas: Atlas;
     const ms = rec?.ms ?? performance.now() - startRef.current;
     const share =
       mode === 'gunluk' && rec
-        ? shareText({ title: t.daily[`title_${atlasId}`], number: dailyNumber(today), tiles: rec.tiles as never, score: rec.score, ms: rec.ms })
+        ? shareText({ title: t.daily[`title_${atlasId}`], number: dailyNumber(today), tiles: rec.tiles as never, score: rec.score, ms: rec.ms, url: 'fersah.vercel.app' })
         : undefined;
     const bestKey = `${atlasId}:${scope}:${mode}`;
     return (
@@ -367,6 +368,17 @@ function Game({ atlasId, atlas, mode, scope }: { atlasId: AtlasId; atlas: Atlas;
     if (last.kind === 'yakin') {
       fbTitle = last.km === 0 ? t.game.inside : last.km !== undefined ? t.game.distance(last.km) : t.game.wrong;
       fbLines.push(`${target.name} · ${t.game.points(last.score)}`);
+      const picked = last.picked ? atlas.unitById.get(last.picked) : undefined;
+      if (last.km !== 0) {
+        if (picked && picked.id !== target.id) {
+          fbLines.push(t.game.tappedOn(picked.name));
+          const a = atlas.invert(picked.label);
+          const b = atlas.invert(target.label);
+          if (a && b) fbLines.push(t.game.between(picked.name, target.name, Math.round(haversineKm(a, b))));
+        } else if (!picked && last.at) {
+          fbLines.push(t.game.tappedSea);
+        }
+      }
     } else {
       fbTitle = t.game.wrong;
       fbLines.push(t.game.answerWas(target.name));

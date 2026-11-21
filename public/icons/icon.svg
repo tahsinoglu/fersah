@@ -1,15 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#14a9a4"/>
-      <stop offset="1" stop-color="#1c5f6e"/>
-    </linearGradient>
-  </defs>
-  <rect width="512" height="512" rx="112" fill="url(#g)"/>
-  <g fill="none" stroke="#f6f4ef" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="256" cy="256" r="150" stroke-width="22" opacity="0.95"/>
-    <path d="M106 256h300" stroke-width="16" opacity="0.55"/>
-    <path d="M256 106c44 40 66 90 66 150s-22 110-66 150c-44-40-66-90-66-150s22-110 66-150Z" stroke-width="16" opacity="0.55"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs><clipPath id="c"><rect x="6" y="6" width="88" height="88" rx="18"/></clipPath></defs>
+  <g clip-path="url(#c)">
+    <polygon points="0,0 57,0 51,49 0,44" fill="#3C78C8"/>
+    <polygon points="57,0 100,0 100,43 51,49" fill="#F2B33D"/>
+    <polygon points="0,44 51,49 60,100 0,100" fill="#5BC0CF"/>
+    <polygon points="51,49 100,43 100,100 60,100" fill="#34A169"/>
+    <polyline points="57,0 51,49 60,100" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round"/>
+    <polyline points="0,44 51,49 100,43" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round"/>
   </g>
-  <circle cx="256" cy="256" r="34" fill="#f6f4ef"/>
+  <circle cx="51" cy="49" r="10" fill="#FFFFFF"/>
+  <circle cx="51" cy="49" r="6.5" fill="#E2574C"/>
 </svg>

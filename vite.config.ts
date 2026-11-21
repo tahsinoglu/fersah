@@ -3,7 +3,12 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
+import { readFileSync } from 'node:fs';
+
+const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string };
+
 export default defineConfig(({ mode }) => ({
+  define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   base: mode === 'preview-static' ? './' : '/',
   plugins: [
     react(),
@@ -13,17 +18,17 @@ export default defineConfig(({ mode }) => ({
         registerType: 'autoUpdate',
         includeAssets: ['icons/*.png', 'icons/icon.svg'],
         manifest: {
-          name: 'Memleket & Cihan',
-          short_name: 'Memleket',
-          description: 'Türkiye ve dünya harita bilgisi oyunu',
+          name: 'Fersah · Harita oyunu',
+          short_name: 'Fersah',
+          description: 'Memleketi ve cihanı haritada gez.',
           lang: 'tr',
           dir: 'ltr',
           start_url: '/memleket',
           scope: '/',
           display: 'standalone',
           orientation: 'portrait',
-          background_color: '#f6f4ef',
-          theme_color: '#f6f4ef',
+          background_color: '#f7f7f5',
+          theme_color: '#f7f7f5',
           categories: ['education', 'games'],
           icons: [
             { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },

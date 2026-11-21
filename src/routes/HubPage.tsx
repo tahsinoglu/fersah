@@ -27,7 +27,7 @@ function DailyCard({ atlasId }: { atlasId: AtlasId }) {
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-[12.5px] font-bold uppercase tracking-[0.08em] text-[var(--ink-3)]">#{dailyNumber(key)}</p>
-          <h3 className="text-[18px] font-extrabold leading-tight">{t.daily[`title_${atlasId}`]}</h3>
+          <h3 className="text-[18px] font-semibold leading-tight">{atlasId === 'memleket' ? t.nav.memleket : t.nav.cihan}</h3>
         </div>
         <IconChevron className="text-[var(--ink-3)]" />
       </div>
@@ -79,7 +79,6 @@ export function HubPage() {
         to="/cocuk"
         className="kids-entry pressable relative overflow-hidden rounded-[26px] p-5 text-[#1d2433] shadow-md"
       >
-        <span aria-hidden="true" className="kids-blob" />
         <p className="relative text-[28px] font-extrabold leading-tight">{t.hub.kidsTitle}</p>
         <p className="relative mt-1 max-w-[30ch] text-[15px] font-semibold opacity-80">{t.hub.kidsDesc}</p>
         <span className="relative mt-4 inline-flex h-14 items-center rounded-2xl bg-white/90 px-6 text-[18px] font-extrabold">Hadi başla!</span>

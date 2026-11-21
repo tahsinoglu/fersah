@@ -37,7 +37,7 @@ export function apply() {
   const r = resolvedTheme();
   document.documentElement.dataset.theme = r;
   const meta = document.querySelector('meta[name="theme-color"]');
-  meta?.setAttribute('content', r === 'dark' ? '#121826' : '#f6f4ef');
+  meta?.setAttribute('content', r === 'dark' ? '#0f1724' : '#f7f7f5');
 }
 
 export function useTheme(): [ThemePref, (p: ThemePref) => void] {
