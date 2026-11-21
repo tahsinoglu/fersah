@@ -77,7 +77,7 @@ export function HubPage() {
     <Shell section="oyna" title={t.hub.title}>
       <Link
         to="/cocuk"
-        className="kids-card pressable relative overflow-hidden rounded-[26px] p-5 text-[#1d2433] shadow-md"
+        className="kids-entry pressable relative overflow-hidden rounded-[26px] p-5 text-[#1d2433] shadow-md"
       >
         <span aria-hidden="true" className="kids-blob" />
         <p className="relative text-[28px] font-extrabold leading-tight">{t.hub.kidsTitle}</p>

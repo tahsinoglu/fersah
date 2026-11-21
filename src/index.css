@@ -249,7 +249,7 @@ body {
 }
 
 /* Çocuk Köşesi girişi: daha renkli ama sade */
-.kids-card {
+.kids-entry {
   background: linear-gradient(135deg, #ffd27a 0%, #ffb3a7 45%, #a8d8ff 100%);
 }
 .kids-blob {

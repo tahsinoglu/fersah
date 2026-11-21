@@ -169,10 +169,16 @@
   pointer-events: none;
   animation: labels-in 320ms ease both;
   animation-delay: var(--t-reveal-delay);
+}
+.labels-wrap {
+  pointer-events: none;
+}
+/* Kamera geçişi sırasında etiketler gizlenir, geçiş bitince yerleşip belirir.
+   (Dış sarmalayıcıda: iç gruptaki belirme animasyonu opaklığı ezmesin) */
+.labels-wrap {
   transition: opacity 200ms ease;
 }
-/* Kamera geçişi sırasında etiketler gizlenir, geçiş bitince yerleşip belirir */
-.flying .labels {
+.flying .labels-wrap {
   opacity: 0;
   transition: opacity 90ms ease;
 }
@@ -354,4 +360,11 @@
 
 @media (prefers-reduced-motion: reduce) {
   .fx-ok.run, .fx-bad.run { animation-duration: 300ms; }
+}
+
+.map-overlay {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: auto;
 }

@@ -1,0 +1,204 @@
+/* Çocuk Köşesi: daha renkli ama sade; tema seçiminden bağımsız, hep aydınlık */
+.kids {
+  color-scheme: light;
+  --bg: #fff7ea;
+  --bg-dot: rgba(160, 110, 40, 0.09);
+  --ink: #1d2433;
+  --ink-2: #3b4556;
+  --ink-3: #6b7383;
+  --label: #1d2433;
+  --label-halo: rgba(255, 247, 234, 0.9);
+  --unit-line: #ffffff;
+  --group-line: #ffffff;
+  --coast-line: rgba(120, 90, 50, 0.3);
+  --hot-line: rgba(29, 36, 51, 0.6);
+  --accent: #ef7d57;
+  --accent-glow: #ffb86b;
+  --correct: #4fbf7f;
+  --wrong: #ffb36b;
+  /* Aynı dokunma hissi, sadece daha yavaş */
+  --t-hover: 320ms;
+  --t-dim: 620ms;
+  --t-reveal-delay: 220ms;
+  background-color: var(--bg);
+  background-image: radial-gradient(var(--bg-dot) 1.2px, transparent 1.6px);
+  background-size: 26px 26px;
+  color: var(--ink);
+  font-size: 18px;
+}
+
+/* Harita renkleri daha canlı */
+.kids .map .unit {
+  fill: hsl(var(--h) 70% calc(74% + var(--dl)));
+  stroke-opacity: 0.6;
+}
+.kids .map .k-ok .unit {
+  fill: #7fd6a0;
+}
+.kids .map .k-no .unit {
+  fill: #ffc98f;
+}
+.kids .map .k-hint .unit {
+  animation: kids-hint 1.2s ease-in-out infinite;
+}
+@keyframes kids-hint {
+  0%, 100% { fill: hsl(var(--h) 70% 74%); }
+  50% { fill: #fff1a8; }
+}
+.kids .map .lbl {
+  font-size: 15px;
+}
+
+.kids-card {
+  background: #fff;
+  border-radius: 26px;
+  box-shadow: 0 10px 30px rgba(120, 80, 20, 0.14);
+}
+.kids-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 170px;
+  padding: 16px;
+  text-align: center;
+  border-radius: 28px;
+  box-shadow: 0 6px 18px rgba(120, 80, 20, 0.12);
+  transition: transform 180ms ease;
+}
+.kids-tile:active {
+  transform: scale(0.96);
+}
+.kids-btn {
+  display: block;
+  width: 100%;
+  min-height: 56px;
+  border-radius: 20px;
+  background: #ef7d57;
+  color: #fff;
+  font-weight: 800;
+  box-shadow: 0 4px 0 #c9603d;
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+.kids-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #c9603d;
+}
+.kids-btn.secondary {
+  background: #fff;
+  color: #1d2433;
+  box-shadow: 0 4px 0 #e4d6c2;
+}
+.kids-icon-btn {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  border-radius: 18px;
+  background: #fff;
+  color: #1d2433;
+  box-shadow: 0 4px 12px rgba(120, 80, 20, 0.14);
+}
+.kids-bubble {
+  background: #fff;
+  border-radius: 22px;
+  padding: 14px 18px;
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1.25;
+  color: #1d2433;
+  box-shadow: 0 6px 18px rgba(120, 80, 20, 0.12);
+}
+
+/* Yapboz */
+.kids-tray {
+  fill: rgba(255, 255, 255, 0.7);
+  stroke: #ecd9bd;
+  stroke-width: 2;
+  stroke-dasharray: 8 6;
+  vector-effect: non-scaling-stroke;
+}
+.kids-ghost {
+  fill: rgba(200, 170, 130, 0.12);
+  stroke: #c9ae8a;
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+}
+.kids-ghost.hint {
+  animation: ghost-hint 1.1s ease-in-out infinite;
+}
+@keyframes ghost-hint {
+  50% { fill: rgba(255, 220, 110, 0.55); }
+}
+.kids-piece {
+  stroke: #fff;
+  stroke-width: 2;
+}
+.kids-piece.active {
+  filter: drop-shadow(0 6px 8px rgba(80, 50, 10, 0.25));
+}
+.kids-piece-wrap {
+  cursor: grab;
+  touch-action: none;
+  transition: transform 320ms cubic-bezier(0.2, 0.8, 0.2, 1.2);
+}
+.kids-piece-wrap.dragging {
+  cursor: grabbing;
+  transition: none;
+}
+.kids-piece.placed {
+  animation: piece-in 400ms ease both;
+}
+@keyframes piece-in {
+  from { opacity: 0.6; }
+}
+.kids-sparkle line {
+  stroke: #ffc83d;
+  stroke-width: 3;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.kids-sparkle circle {
+  fill: #fff6c2;
+}
+.kids-sparkle {
+  animation: sparkle 700ms ease-out both;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes sparkle {
+  0% { opacity: 0; scale: 0.3; }
+  30% { opacity: 1; }
+  100% { opacity: 0; scale: 1.4; }
+}
+
+/* Keşif simgeleri */
+.kids-pin {
+  display: block;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  box-shadow: 0 4px 12px rgba(80, 50, 10, 0.25);
+  transition: transform 220ms ease;
+}
+.kids-pin.on,
+.kids-pin:active {
+  transform: scale(1.15);
+}
+.kids .map-overlay {
+  /* MapView konumlandırması zaten ortalıyor; simgenin kendi ortalamasıyla çakışmasın */
+  margin: 0;
+}
+
+.celebrate {
+  animation: celebrate 600ms cubic-bezier(0.2, 0.8, 0.2, 1.3) both;
+}
+@keyframes celebrate {
+  from { transform: scale(0.7); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kids .map .k-hint .unit, .kids-ghost.hint { animation: none; fill: #fff1a8; }
+}

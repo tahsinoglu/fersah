@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type ReactNode,
 } from 'react';
 import { select } from 'd3-selection';
 import 'd3-transition';
@@ -48,8 +49,12 @@ export interface MapViewProps {
   onUp?: () => void;
   /** 'explore': seviyeli gezinme; 'pick': oyun, kapsamdaki birimlere dokunulur */
   interaction?: 'explore' | 'pick';
-  /** pick modunda dokunulabilen birimler */
+  /** pick modunda dokunulabilen birimler (pickGroups ise grup kimlikleri) */
   pickable?: ReadonlySet<string>;
+  /** pick modunda birim yerine bütün grup (bölge/kıta) seçilir */
+  pickGroups?: boolean;
+  /** Çocuk Köşesi: daha yavaş kamera */
+  slow?: boolean;
   /** pick modunda dokunma: birim (yoksa null) ve dokunulan nokta [boylam, enlem] */
   onPick?: (unitId: string | null, lonlat: Pt | null) => void;
   /** Birim → boya sınıfı (p-ok, p-target, p-m3 …) */
@@ -60,6 +65,8 @@ export interface MapViewProps {
   highlight?: string | null;
   marks?: MapMark[];
   line?: MapLine | null;
+  /** Haritaya iliştirilen dokunulabilir öğeler (Çocuk Köşesi simgeleri) */
+  overlays?: { id: string; at: Pt; content: ReactNode }[];
   /** Etiketler (oyun sırasında kapatılır) */
   labels?: boolean;
   reducedMotion?: boolean;
@@ -92,9 +99,10 @@ function frameFor(atlas: Atlas, sel: Selection): { box: Box; fill: number } {
 }
 
 /** Bir birime dokunulunca hangi hedefin seçileceği (seviyeye göre). */
-function resolveTarget(atlas: Atlas, sel: Selection, unit: MapUnit, pickable?: ReadonlySet<string>): Target | null {
-  if (pickable) return pickable.has(unit.id) ? { kind: 'unit', unit } : null;
+function resolveTarget(atlas: Atlas, sel: Selection, unit: MapUnit, pickable?: ReadonlySet<string>, pickGroups = false): Target | null {
   const group = atlas.groupById.get(unit.groupId);
+  if (pickable && pickGroups) return group && pickable.has(group.id) ? { kind: 'group', group } : null;
+  if (pickable) return pickable.has(unit.id) ? { kind: 'unit', unit } : null;
   if (!group) return null;
   const depth = depthOf(sel);
   if (depth === 0) return group.selectable ? { kind: 'group', group } : null;
@@ -121,7 +129,7 @@ interface LabelSpec {
 export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
   {
     atlas, selection, insets, onSelect, onUp, labels = true, reducedMotion = false, ariaLabel, className,
-    interaction = 'explore', pickable, onPick, paint, groupPaint, highlight, marks, line,
+    interaction = 'explore', pickable, pickGroups = false, slow = false, onPick, paint, groupPaint, highlight, marks, line, overlays,
   },
   ref,
 ) {
@@ -148,8 +156,8 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
   const flyingRef = useRef(false);
 
   // Güncel değerleri olay işleyicilerinde kullanmak için
-  const live = useRef({ atlas, selection, onSelect, onUp, reducedMotion, interaction, pickable, onPick });
-  live.current = { atlas, selection, onSelect, onUp, reducedMotion, interaction, pickable, onPick };
+  const live = useRef({ atlas, selection, onSelect, onUp, reducedMotion, interaction, pickable, pickGroups, slow, onPick });
+  live.current = { atlas, selection, onSelect, onUp, reducedMotion, interaction, pickable, pickGroups, slow, onPick };
 
   const depth = depthOf(selection);
   const focusGroup = selection.groupId ? atlas.groupById.get(selection.groupId) : undefined;
@@ -224,15 +232,19 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
         if (fits) vis.add(el.dataset.key!);
       }
     }
-    const mg = markRef.current;
-    if (mg) {
-      for (const el of Array.from(mg.children) as HTMLElement[]) {
-        const x = t.x + t.k * Number(el.dataset.px);
-        const y = t.y + t.k * Number(el.dataset.py);
-        el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -50%)`;
-      }
-    }
+    layoutMarks(t);
     positionTip(t);
+  }, []);
+
+  /** İşaretler ve simgeler az sayıda: kamera geçişinde de her karede yerleştirilir */
+  const layoutMarks = useCallback((t: ZoomTransform) => {
+    const mg = markRef.current;
+    if (!mg) return;
+    for (const el of Array.from(mg.children) as HTMLElement[]) {
+      const x = t.x + t.k * Number(el.dataset.px);
+      const y = t.y + t.k * Number(el.dataset.py);
+      el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -50%)`;
+    }
   }, []);
 
   // ---------- Vurgu (üstüne gelme / basılı tutma / klavye) ----------
@@ -295,6 +307,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
         if (w) w.style.transform = `translate(${t.x}px, ${t.y}px) scale(${t.k})`;
         // Programlı kamera geçişinde etiketler gizli; yalnızca kullanıcı hareketinde canlı yerleştir
         if (!flyingRef.current) layout(t);
+        else layoutMarks(t);
       })
       .on('end', (e) => {
         svg.classList.remove('moving');
@@ -309,7 +322,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
     return () => {
       select(svg).on('.zoom', null);
     };
-  }, [layout, layoutHits]);
+  }, [layout, layoutHits, layoutMarks]);
 
   // Boyut takibi
   useLayoutEffect(() => {
@@ -357,7 +370,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
       svg.classList.add('flying');
       return new Promise((resolve) => {
         s.transition()
-          .duration(ms)
+          .duration(live.current.slow ? ms * 1.5 : ms)
           .ease(easeCubicInOut)
           .call(z.transform, target)
           .on('end interrupt', () => {
@@ -448,8 +461,8 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
       }
     }
     const unit = live.current.atlas.unitById.get(node.dataset.u!);
-    const { atlas: a, selection: sel, interaction: mode, pickable: pk } = live.current;
-    return unit ? resolveTarget(a, sel, unit, mode === 'pick' ? (pk ?? new Set()) : undefined) : null;
+    const { atlas: a, selection: sel, interaction: mode, pickable: pk, pickGroups: pg } = live.current;
+    return unit ? resolveTarget(a, sel, unit, mode === 'pick' ? (pk ?? new Set()) : undefined, pg) : null;
   };
 
   /** Ekran noktası → [boylam, enlem] */
@@ -519,7 +532,8 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
       }
       const target = targetAt(e);
       if (live.current.interaction === 'pick') {
-        live.current.onPick?.(target?.kind === 'unit' ? target.unit.id : null, lonlatAt(e.clientX, e.clientY));
+        const id = target ? (target.kind === 'unit' ? target.unit.id : target.group.id) : null;
+        live.current.onPick?.(id, lonlatAt(e.clientX, e.clientY));
         return;
       }
       if (!target) return;
@@ -547,7 +561,8 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
 
   // ---------- Klavye ----------
   const keyTargets = useCallback((): Target[] => {
-    const { atlas: a, selection: sel, interaction: mode, pickable: pk } = live.current;
+    const { atlas: a, selection: sel, interaction: mode, pickable: pk, pickGroups: pg } = live.current;
+    if (mode === 'pick' && pg) return a.groups.filter((g) => pk?.has(g.id)).map((group) => ({ kind: 'group', group }));
     if (mode === 'pick') return a.units.filter((u) => pk?.has(u.id)).map((unit) => ({ kind: 'unit', unit }));
     const groups = a.groups.filter((g) => g.selectable && g.units.length && g.id !== 'antarktika');
     if (!sel.groupId) return groups.map((group) => ({ kind: 'group', group }));
@@ -580,7 +595,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
       const cur = hotRef.current?.target;
       if (cur) {
         e.preventDefault();
-        if (interaction === 'pick' && cur.kind === 'unit') onPick?.(cur.unit.id, live.current.atlas.invert(cur.unit.label));
+        if (interaction === 'pick') onPick?.(cur.kind === 'unit' ? cur.unit.id : cur.group.id, live.current.atlas.invert(cur.kind === 'unit' ? cur.unit.label : cur.group.label));
         else onSelect?.(targetSelection(cur));
       }
     }
@@ -598,7 +613,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
   // İşaretler değişince yerleştir
   useLayoutEffect(() => {
     layout(tRef.current);
-  }, [marks, layout]);
+  }, [marks, overlays, layout]);
 
   return (
     <div ref={wrapRef} className={`map-wrap ${className ?? ''}`}>
@@ -656,6 +671,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
             <line className="shot-line" x1={lineP[0][0]} y1={lineP[0][1]} x2={lineP[1][0]} y2={lineP[1][1]} />
           )}
         </g>
+        <g className="labels-wrap">
         <g ref={labelRef} key={`${depth}:${selection.groupId ?? ''}`} className="labels" aria-hidden="true">
           {labelSpecs.map((l) => (
             <text
@@ -676,6 +692,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
             </text>
           ))}
         </g>
+        </g>
       </svg>
       <div ref={markRef} className="map-marks" aria-hidden="true">
         {markSpecs.map(({ m, p }) => (
@@ -683,6 +700,14 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
             {m.kind === 'ok' ? <MarkIcon ok /> : m.kind === 'bad' ? <MarkIcon /> : null}
           </div>
         ))}
+        {overlays?.map((o) => {
+          const p = atlas.project(o.at);
+          return p ? (
+            <div key={o.id} data-px={p[0]} data-py={p[1]} className="map-overlay">
+              {o.content}
+            </div>
+          ) : null;
+        })}
       </div>
       <div ref={tipRef} className="map-tip" aria-hidden="true" />
       <div ref={liveRef} className="sr-only" aria-live="polite" />
