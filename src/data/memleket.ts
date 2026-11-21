@@ -7,16 +7,18 @@ export interface BolgeTanim {
   /** Harita renk ailesi (HSL ton açısı ve doygunluk) */
   hue: number;
   sat: number;
+  /** Koyu temada OKLCH ton açısı (sıcak tonlar koyu zeminde kahverengiye döndüğü için ayrı palet) */
+  darkHue: number;
 }
 
 export const BOLGELER: BolgeTanim[] = [
-  { id: 'marmara', ad: 'Marmara', hue: 206, sat: 52 },
-  { id: 'ege', ad: 'Ege', hue: 176, sat: 38 },
-  { id: 'akdeniz', ad: 'Akdeniz', hue: 22, sat: 62 },
-  { id: 'ic-anadolu', ad: 'İç Anadolu', hue: 44, sat: 52 },
-  { id: 'karadeniz', ad: 'Karadeniz', hue: 136, sat: 30 },
-  { id: 'dogu-anadolu', ad: 'Doğu Anadolu', hue: 262, sat: 32 },
-  { id: 'guneydogu-anadolu', ad: 'Güneydoğu Anadolu', hue: 346, sat: 42 },
+  { id: 'marmara', ad: 'Marmara', hue: 206, sat: 52, darkHue: 255 },
+  { id: 'ege', ad: 'Ege', hue: 176, sat: 38, darkHue: 175 },
+  { id: 'akdeniz', ad: 'Akdeniz', hue: 22, sat: 62, darkHue: 18 },
+  { id: 'ic-anadolu', ad: 'İç Anadolu', hue: 44, sat: 52, darkHue: 298 },
+  { id: 'karadeniz', ad: 'Karadeniz', hue: 136, sat: 30, darkHue: 142 },
+  { id: 'dogu-anadolu', ad: 'Doğu Anadolu', hue: 262, sat: 32, darkHue: 218 },
+  { id: 'guneydogu-anadolu', ad: 'Güneydoğu Anadolu', hue: 346, sat: 42, darkHue: 338 },
 ];
 
 /** [plaka, ad, bölge] */

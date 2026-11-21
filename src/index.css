@@ -29,6 +29,13 @@
   --l-t2: 76%;
   --l-t3: 89%;
   --l-hot: 5%;
+  --k-base: 0.45;
+  --k-t0: 0.47;
+  --k-t1: 0.43;
+  --k-t2: 0.4;
+  --k-t3: 0.5;
+  --k-hot: 0.06;
+  --chroma: 0.05;
   --unit-line: #ffffff;
   --group-line: #ffffff;
   --coast-line: rgba(40, 60, 84, 0.28);
@@ -60,37 +67,41 @@
 
 [data-theme='dark'] {
   color-scheme: dark;
-  --bg: #121826;
-  --bg-dot: rgba(255, 255, 255, 0.055);
-  --ink: #e8ecf3;
-  --ink-2: #aab3c3;
-  --ink-3: #7d889b;
-  --glass: rgba(28, 36, 53, 0.62);
-  --glass-strong: rgba(30, 39, 57, 0.9);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --hairline: rgba(255, 255, 255, 0.08);
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 18px rgba(0, 0, 0, 0.25);
-  --shadow-md: 0 10px 40px rgba(0, 0, 0, 0.45);
+  /* Lacivert-antrasit zemin */
+  --bg: #111722;
+  --bg-dot: rgba(160, 180, 220, 0.07);
+  --ink: #e6eaf2;
+  --ink-2: #a9b3c6;
+  --ink-3: #7c879c;
+  --glass: rgba(27, 35, 51, 0.72);
+  --glass-strong: rgba(29, 38, 56, 0.92);
+  --glass-border: rgba(170, 190, 230, 0.1);
+  --hairline: rgba(170, 190, 230, 0.12);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35), 0 6px 18px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 10px 40px rgba(0, 0, 0, 0.5);
 
-  --sat-mul: 0.6;
-  --l-base: 31%;
-  --l-t0: 34%;
-  --l-t1: 29%;
-  --l-t2: 26%;
-  --l-t3: 37%;
-  --l-hot: 7%;
-  --unit-line: #121826;
-  --group-line: #0c111c;
-  --coast-line: rgba(255, 255, 255, 0.14);
-  --hot-line: rgba(255, 255, 255, 0.75);
-  --label: #e3e8f0;
-  --label-halo: rgba(18, 24, 38, 0.8);
+  /* Harita: mat, düşük doygunluklu tonlar (OKLCH) */
+  --k-base: 0.5;
+  --k-t0: 0.53;
+  --k-t1: 0.475;
+  --k-t2: 0.445;
+  --k-t3: 0.565;
+  --k-hot: 0.07;
+  --chroma: 0.05;
+  --unit-line: #111722;
+  --group-line: #0b1019;
+  --coast-line: rgba(170, 190, 230, 0.16);
+  --hot-line: rgba(235, 240, 250, 0.8);
+  --label: #edf1f7;
+  --label-halo: rgba(17, 23, 34, 0.78);
 
-  --accent: #35c4bc;
-  --accent-glow: #57e2d8;
-  --accent-soft: rgba(87, 226, 216, 0.35);
-  --accent-tint: rgba(87, 226, 216, 0.12);
+  --accent: #3cc8c0;
+  --accent-glow: #63e0d7;
+  --accent-soft: rgba(99, 224, 215, 0.35);
+  --accent-tint: rgba(99, 224, 215, 0.12);
   --on-accent: #062322;
+  --correct: #6cc79a;
+  --wrong: #f08a82;
 }
 [data-theme='dark'] [data-atlas='cihan'],
 [data-theme='dark'][data-atlas='cihan'] {

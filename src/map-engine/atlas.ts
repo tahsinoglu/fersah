@@ -4,6 +4,7 @@ import type { Feature, FeatureCollection, Geometry, MultiPolygon, Polygon } from
 import type { GeometryCollection, Topology } from 'topojson-specification';
 import type { Atlas, Box, MapGroup, MapUnit, Pt } from './types';
 import { slugify as slugBase } from '../lib/slug';
+import { hslToOklchHue } from '../lib/color';
 
 export interface GroupDef {
   id: string;
@@ -11,6 +12,8 @@ export interface GroupDef {
   name: string;
   hue: number;
   sat: number;
+  /** Koyu tema OKLCH tonu; verilmezse açık tonun karşılığı kullanılır */
+  darkHue?: number;
   /** İsteğe bağlı elle verilmiş kamera kutusu (boylam/enlem) */
   box?: Box;
   label?: Pt;
@@ -138,7 +141,7 @@ export function buildAtlas(topo: Topology, cfg: AtlasConfig): Atlas {
     const outline = path(merged) ?? '';
     const frame = g.box ? projectBox(projection, g.box) : unionBox(members.map((u) => u.frame));
     const label = g.label ? ((projection(g.label) ?? [0, 0]) as Pt) : (path.centroid(merged) as Pt);
-    return { id: g.id, slug: g.slug, name: g.name, hue: g.hue, sat: g.sat, units: members, outline, frame, label, selectable: g.selectable ?? true };
+    return { id: g.id, slug: g.slug, name: g.name, hue: g.hue, sat: g.sat, darkHue: g.darkHue ?? hslToOklchHue(g.hue, g.sat), units: members, outline, frame, label, selectable: g.selectable ?? true };
   });
 
   const gIndex = new Map(obj.geometries.map((g, i) => [g, i]));

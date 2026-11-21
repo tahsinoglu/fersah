@@ -30,7 +30,9 @@
 /* ---------- Birimler (il / ülke) ---------- */
 .unit {
   --L: var(--l-base);
+  --K: var(--k-base);
   --dl: 0%;
+  --dk: 0;
   fill: hsl(var(--h) calc(var(--s) * var(--sat-mul)) calc(var(--L) + var(--dl)));
   stroke: var(--unit-line);
   stroke-width: 0.7;
@@ -52,10 +54,15 @@
     stroke-opacity 300ms ease var(--t-reveal-delay),
     fill-opacity var(--t-dim) ease;
 }
-.grp-focus .unit.t0 { --L: var(--l-t0); }
-.grp-focus .unit.t1 { --L: var(--l-t1); }
-.grp-focus .unit.t2 { --L: var(--l-t2); }
-.grp-focus .unit.t3 { --L: var(--l-t3); }
+.grp-focus .unit.t0 { --L: var(--l-t0); --K: var(--k-t0); }
+.grp-focus .unit.t1 { --L: var(--l-t1); --K: var(--k-t1); }
+.grp-focus .unit.t2 { --L: var(--l-t2); --K: var(--k-t2); }
+.grp-focus .unit.t3 { --L: var(--l-t3); --K: var(--k-t3); }
+
+/* Koyu tema: OKLCH ile mat, aynı parlaklıkta tonlar (sarı/turuncu kahverengiye dönmez) */
+[data-theme='dark'] .unit {
+  fill: oklch(calc(var(--K) + var(--dk)) var(--chroma) var(--oh));
+}
 
 /*
  * Sönükleştirme: 250 yolu tek tek soldurmak yerine odak dışını örten tek bir "perde".
@@ -80,6 +87,7 @@
 .unit.hot,
 .unit.sel {
   --dl: var(--l-hot);
+  --dk: var(--k-hot);
 }
 .grp-focus .unit.sib.hot {
   fill-opacity: 1;

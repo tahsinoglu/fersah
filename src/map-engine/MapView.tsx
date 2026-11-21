@@ -524,7 +524,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
                 key={g.id}
                 data-g={g.id}
                 className={`grp grp-${state}`}
-                style={{ '--h': g.hue, '--s': `${g.sat}%` } as CSSProperties}
+                style={{ '--h': g.hue, '--s': `${g.sat}%`, '--oh': g.darkHue } as CSSProperties}
               >
                 {g.units.map((u) => (
                   <path

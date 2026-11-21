@@ -14,7 +14,7 @@ const memleketConfig: AtlasConfig = {
   objectName: 'iller',
   width: 1000,
   projection: () => geoConicConformal().parallels([36.5, 41.5]).rotate([-35, 0]),
-  groups: BOLGELER.map((b) => ({ id: b.id, slug: b.id, name: b.ad, hue: b.hue, sat: b.sat })),
+  groups: BOLGELER.map((b) => ({ id: b.id, slug: b.id, name: b.ad, hue: b.hue, sat: b.sat, darkHue: b.darkHue })),
   unit: (p) => {
     const il = ILLER_BY_PLAKA.get(String(p.id));
     if (!il) return null;
@@ -36,7 +36,7 @@ const cihanConfig: AtlasConfig = {
   projection: () => geoEqualEarth().rotate([-11, 0]),
   rootBox: [[-168.9, -58], [190.9, 84]],
   groups: KITALAR.map((k) => ({
-    id: k.id, slug: k.id, name: k.ad, hue: k.hue, sat: k.sat, box: k.kutu, label: k.etiket, selectable: true,
+    id: k.id, slug: k.id, name: k.ad, hue: k.hue, sat: k.sat, darkHue: k.darkHue, box: k.kutu, label: k.etiket, selectable: true,
   })),
   unit: (p) => {
     const id = String(p.id);

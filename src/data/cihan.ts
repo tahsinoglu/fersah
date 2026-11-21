@@ -8,6 +8,7 @@ export interface KitaTanim {
   ne: string;
   hue: number;
   sat: number;
+  darkHue: number;
   /** Kamera kutusu [[batı, güney], [doğu, kuzey]] (boylam, enlem) */
   kutu: [[number, number], [number, number]];
   /** Dünya görünümünde kıta etiketinin yeri [boylam, enlem] */
@@ -16,13 +17,13 @@ export interface KitaTanim {
 }
 
 export const KITALAR: KitaTanim[] = [
-  { id: 'afrika', ad: 'Afrika', ne: 'Africa', hue: 30, sat: 58, kutu: [[-20, -36], [53, 38]], etiket: [18, 6], oynanabilir: true },
-  { id: 'asya', ad: 'Asya', ne: 'Asia', hue: 350, sat: 42, kutu: [[26, -11], [150, 62]], etiket: [88, 44], oynanabilir: true },
-  { id: 'avrupa', ad: 'Avrupa', ne: 'Europe', hue: 214, sat: 50, kutu: [[-24, 34], [45, 71]], etiket: [15, 52], oynanabilir: true },
-  { id: 'kuzey-amerika', ad: 'Kuzey Amerika', ne: 'North America', hue: 160, sat: 34, kutu: [[-168, 7], [-52, 72]], etiket: [-102, 44], oynanabilir: true },
-  { id: 'guney-amerika', ad: 'Güney Amerika', ne: 'South America', hue: 92, sat: 34, kutu: [[-82, -56], [-34, 13]], etiket: [-60, -14], oynanabilir: true },
-  { id: 'okyanusya', ad: 'Okyanusya', ne: 'Oceania', hue: 190, sat: 46, kutu: [[110, -48], [189, 2]], etiket: [134, -25], oynanabilir: true },
-  { id: 'antarktika', ad: 'Antarktika', ne: 'Antarctica', hue: 220, sat: 14, kutu: [[-168, -90], [190, -60]], etiket: [20, -80], oynanabilir: false },
+  { id: 'afrika', ad: 'Afrika', ne: 'Africa', hue: 30, sat: 58, darkHue: 18, kutu: [[-20, -36], [53, 38]], etiket: [18, 6], oynanabilir: true },
+  { id: 'asya', ad: 'Asya', ne: 'Asia', hue: 350, sat: 42, darkHue: 300, kutu: [[26, -11], [150, 62]], etiket: [88, 44], oynanabilir: true },
+  { id: 'avrupa', ad: 'Avrupa', ne: 'Europe', hue: 214, sat: 50, darkHue: 255, kutu: [[-24, 34], [45, 71]], etiket: [15, 52], oynanabilir: true },
+  { id: 'kuzey-amerika', ad: 'Kuzey Amerika', ne: 'North America', hue: 160, sat: 34, darkHue: 172, kutu: [[-168, 7], [-52, 72]], etiket: [-102, 44], oynanabilir: true },
+  { id: 'guney-amerika', ad: 'Güney Amerika', ne: 'South America', hue: 92, sat: 34, darkHue: 140, kutu: [[-82, -56], [-34, 13]], etiket: [-60, -14], oynanabilir: true },
+  { id: 'okyanusya', ad: 'Okyanusya', ne: 'Oceania', hue: 190, sat: 46, darkHue: 218, kutu: [[110, -48], [189, 2]], etiket: [134, -25], oynanabilir: true },
+  { id: 'antarktika', ad: 'Antarktika', ne: 'Antarctica', hue: 220, sat: 14, darkHue: 250, kutu: [[-168, -90], [190, -60]], etiket: [20, -80], oynanabilir: false },
 ];
 
 /** "Seven seas" ve tartışmalı atamaları düzelt */

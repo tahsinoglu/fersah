@@ -30,6 +30,7 @@ export interface MapGroup {
   name: string;
   hue: number;
   sat: number;
+  darkHue: number;
   units: MapUnit[];
   outline: string;
   frame: Box;
