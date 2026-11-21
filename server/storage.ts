@@ -1,5 +1,5 @@
 // Depolama: üretimde Vercel Blob (etag ile koşullu yazma), yerelde ve testlerde bellek/dosya.
-import { del, get, list, put, BlobPreconditionFailedError } from '@vercel/blob';
+import { del, list, put } from '@vercel/blob';
 import { mkdirSync, readFileSync, readdirSync, writeFileSync, existsSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
@@ -16,55 +16,96 @@ export interface Storage {
   /** ifMatch: yalnızca dosya hâlâ bu sürümdeyse yaz. create: yalnızca dosya yoksa yaz. */
   write<T>(path: string, data: T, opts?: { ifMatch?: string | null; create?: boolean }): Promise<void>;
   remove(path: string): Promise<void>;
-  /** Bir önekteki dosyalar; içerik CDN önbelleğinden (birkaç saniye eski olabilir) okunur */
+  /** Bir önekteki mantıksal dosyalar (her birinin en yeni sürümü) */
   listJSON<T>(prefix: string): Promise<{ path: string; data: T }[]>;
 }
 
+/**
+ * Vercel Blob üzerinde sürümlü depolama.
+ *
+ * Blob aynı adın üzerine yazılınca CDN birkaç saniye (ölçümde 5 sn'den uzun) eski içeriği döndürebiliyor.
+ * Bu yüzden mantıksal her dosya bir klasördür ve her yazış yeni, değişmez bir sürüm dosyası açar:
+ *   oyuncu/ahmet.json/0001763762000000-k3x9.json
+ * Okuma, listeden en yeni sürümü seçip onun (hiç önbelleğe girmemiş) adresini getirir; eski sürümler silinir.
+ * create/ifMatch denetimleri listeye dayanır (atomik değil; tek yazarlı kayıtlar için yeterli).
+ */
 export class BlobStorage implements Storage {
+  private async versions(path: string) {
+    const out: { pathname: string; url: string }[] = [];
+    let cursor: string | undefined;
+    do {
+      // Önek "/" olmadan: eski sürümsüz dosya (path'in kendisi) da gelir ve en eski sayılır
+      const r = await list({ prefix: path, cursor, limit: 1000 });
+      out.push(...r.blobs.filter((b) => b.pathname === path || b.pathname.startsWith(`${path}/`)).map((b) => ({ pathname: b.pathname, url: b.url })));
+      cursor = r.hasMore ? r.cursor : undefined;
+    } while (cursor);
+    return out.sort((a, b) => (a.pathname < b.pathname ? -1 : 1));
+  }
+
+  private async fetchJSON<T>(url: string): Promise<T | null> {
+    const r = await fetch(url, { cache: 'no-store' });
+    return r.ok ? ((await r.json()) as T) : null;
+  }
+
   async read<T>(path: string): Promise<Doc<T> | null> {
-    const r = await get(path, { access: 'public', useCache: false });
-    if (!r || r.statusCode !== 200) return null;
-    const text = await new Response(r.stream).text();
-    return { data: JSON.parse(text) as T, etag: r.blob.etag };
+    const v = await this.versions(path);
+    const last = v[v.length - 1];
+    if (!last) return null;
+    const data = await this.fetchJSON<T>(last.url);
+    return data === null ? null : { data, etag: last.pathname };
   }
 
   async write<T>(path: string, data: T, opts: { ifMatch?: string | null; create?: boolean } = {}): Promise<void> {
+    if (opts.create || opts.ifMatch) {
+      const v = await this.versions(path);
+      if (opts.create && v.length) throw new ConflictError('exists');
+      if (opts.ifMatch && v[v.length - 1]?.pathname !== opts.ifMatch) throw new ConflictError('precondition');
+    }
+    const name = `${path}/${String(Date.now()).padStart(16, '0')}-${Math.random().toString(36).slice(2, 8)}.json`;
+    await put(name, JSON.stringify(data), {
+      access: 'public',
+      contentType: 'application/json',
+      addRandomSuffix: false,
+      cacheControlMaxAge: 31536000, // değişmez dosya
+    });
+    // Eski sürümleri temizle (en iyi çaba)
     try {
-      await put(path, JSON.stringify(data), {
-        access: 'public',
-        contentType: 'application/json',
-        addRandomSuffix: false,
-        allowOverwrite: !opts.create,
-        cacheControlMaxAge: 60,
-        ...(opts.ifMatch ? { ifMatch: opts.ifMatch } : {}),
-      });
-    } catch (e) {
-      if (e instanceof BlobPreconditionFailedError) throw new ConflictError('precondition');
-      if (opts.create && /exist/i.test(String((e as Error)?.message))) throw new ConflictError('exists');
-      throw e;
+      const old = (await this.versions(path)).filter((b) => b.pathname < name);
+      if (old.length) await del(old.map((b) => b.url));
+    } catch {
+      /* sonraki yazışta yeniden denenir */
     }
   }
 
   async remove(path: string): Promise<void> {
-    await del(path);
+    const v = await this.versions(path);
+    if (v.length) await del(v.map((b) => b.url));
   }
 
   async listJSON<T>(prefix: string): Promise<{ path: string; data: T }[]> {
-    const items: { pathname: string; url: string }[] = [];
+    const latest = new Map<string, { pathname: string; url: string }>();
     let cursor: string | undefined;
+    let n = 0;
     do {
       const r = await list({ prefix, cursor, limit: 1000 });
-      items.push(...r.blobs.map((b) => ({ pathname: b.pathname, url: b.url })));
+      for (const b of r.blobs) {
+        const i = b.pathname.lastIndexOf('/');
+        // Önekin hemen altındaki dosya eski sürümsüz kayıttır; daha derindeki bir sürüm dosyasıdır
+        const logical = i < prefix.length ? b.pathname : b.pathname.slice(0, i);
+        const cur = latest.get(logical);
+        if (!cur || cur.pathname < b.pathname) latest.set(logical, { pathname: b.pathname, url: b.url });
+      }
+      n += r.blobs.length;
       cursor = r.hasMore ? r.cursor : undefined;
-    } while (cursor && items.length < 20000);
+    } while (cursor && n < 40000);
+    const items = [...latest.entries()];
     const out: { path: string; data: T }[] = [];
-    // Herkese açık küçük dosyalar: CDN üzerinden, sınırlı eşzamanlılıkla
     for (let i = 0; i < items.length; i += 24) {
       const chunk = await Promise.all(
-        items.slice(i, i + 24).map(async (b) => {
+        items.slice(i, i + 24).map(async ([path, b]): Promise<{ path: string; data: T } | null> => {
           try {
-            const r = await fetch(b.url);
-            return r.ok ? { path: b.pathname, data: (await r.json()) as T } : null;
+            const data = await this.fetchJSON<T>(b.url);
+            return data === null ? null : { path, data: data as T };
           } catch {
             return null;
           }

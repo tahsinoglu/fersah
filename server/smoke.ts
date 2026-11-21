@@ -58,6 +58,7 @@ async function apiTest(base: string) {
   for (const wait of [0, 2000, 5000]) {
     await new Promise((r) => setTimeout(r, wait));
     const d = await st.read<{ toplam: number }>(`oyuncu/${ad}.json`);
+    if (wait === 0) log('oyuncu kaydı tazelik', d?.data.toplam === 1100 ? 'TAMAM' : 'ESKİ');
     log(`oyuncu kaydı +${wait}ms`, 'toplam', d?.data.toplam ?? 'yok');
   }
   // İkinci tur: önceki puanın üstüne eklenmeli (kayıp güncelleme olmamalı)

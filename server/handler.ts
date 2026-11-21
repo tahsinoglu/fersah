@@ -3,6 +3,7 @@
 // Depolama düzeni (Vercel Blob bir veritabanı değil; yazdıktan sonra kısa süre eski sürüm dönebilir):
 // - kullanici/<gizli>.json : şifre özeti ve ilerleme (yalnızca sahibi yazar)
 // - oyuncu/<ad>.json       : herkese açık skor kaydı (yalnızca sahibi yazar)
+// (Blob'da her biri sürümlü bir klasördür; bkz. storage.ts)
 // Ortak, çok kişinin güncellediği dosya yoktur; böylece eşzamanlı oyuncuların puanları kaybolmaz.
 // Sıralama, oyuncu kayıtları listelenerek hesaplanır ve kısa süre önbellekte tutulur.
 import {
