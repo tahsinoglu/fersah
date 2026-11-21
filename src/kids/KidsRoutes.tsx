@@ -10,13 +10,18 @@ import { IconBack, IconSpeaker } from '../ui/icons';
 import { EXPLORE } from './data';
 import { KIDS_ICONS } from './icons';
 import { Puzzle } from './Puzzle';
-import { canSpeak, speak, stopSpeaking } from './speech';
-import { addStar, ENCOURAGE, pick, PRAISE, useStars } from './store';
+import { canSpeak, preloadSpeech, primeSpeech, speak, stopSpeaking } from './speech';
+import { addStar, pick, useStars } from './store';
+import { DONE_FIND, DONE_PUZZLE, ENCOURAGE, findQuestion, HINT, PRAISE, thisIs } from './phrases';
 import './kids.css';
 
 /** Çocuk Köşesi çerçevesi: her zaman kendi aydınlık, renkli görünümünde */
 export function KidsLayout() {
-  useEffect(() => () => stopSpeaking(), []);
+  useEffect(() => {
+    primeSpeech();
+    preloadSpeech([...PRAISE, ...ENCOURAGE, HINT]);
+    return () => stopSpeaking();
+  }, []);
   return (
     <div className="kids fixed inset-0 overflow-hidden">
       <Outlet />
@@ -180,7 +185,7 @@ export function PuzzlePage() {
         {!atlas ? (
           <Loading />
         ) : done ? (
-          <Celebrate text="Tebrikler! Hepsini yerleştirdin!" again={() => { setDone(false); setRound((r) => r + 1); }} back="/cocuk" />
+          <Celebrate text={DONE_PUZZLE} again={() => { setDone(false); setRound((r) => r + 1); }} back="/cocuk" />
         ) : (
           <Puzzle key={round} atlas={atlas} onDone={() => setDone(true)} />
         )}
@@ -207,11 +212,12 @@ export function FindPage() {
   const [tries, setTries] = useState(0);
   const [msg, setMsg] = useState('');
   const target: MapGroup | undefined = groups[i];
-  const word = atlasId === 'cihan' ? 'kıtasını' : 'bölgesini';
-  const question = target ? `${target.name} ${word} bul!` : '';
+  const question = target ? findQuestion(target.name, atlasId === 'cihan' ? 'cihan' : 'memleket') : '';
 
   useEffect(() => {
     if (!target) return;
+    const next = groups[i + 1];
+    preloadSpeech([thisIs(target.name), ...(next ? [findQuestion(next.name, atlasId === 'cihan' ? 'cihan' : 'memleket')] : [])]);
     setMsg(question);
     setTries(0);
     speak(question);
@@ -233,7 +239,7 @@ export function FindPage() {
       <div className="flex h-full flex-col">
         <KidsHeader title={atlasId === 'cihan' ? 'Kıtayı bul' : 'Bölgeyi bul'} back="/cocuk" />
         <Celebrate
-          text="Harika! Hepsini buldun!"
+          text={DONE_FIND}
           again={() => {
             setFound([]);
             setI(0);
@@ -249,8 +255,8 @@ export function FindPage() {
     if (!target || !gid || found.includes(gid)) return;
     if (gid === target.id) {
       const praise = pick(PRAISE);
-      setMsg(`${praise} Bu ${target.name}.`);
-      speak(`${praise} Bu ${target.name}.`);
+      setMsg(`${praise} ${thisIs(target.name)}`);
+      speak([praise, thisIs(target.name)]);
       try {
         navigator.vibrate?.(15);
       } catch {
@@ -263,9 +269,9 @@ export function FindPage() {
       const g = atlas.groupById.get(gid);
       const t = tries + 1;
       setTries(t);
-      const text = `Bu ${g?.name}. ${t >= 2 ? 'Parlayan yere bak!' : pick(ENCOURAGE)}`;
-      setMsg(text);
-      speak(text);
+      const tip = t >= 2 ? HINT : pick(ENCOURAGE);
+      setMsg(`${thisIs(g?.name ?? '')} ${tip}`);
+      speak([thisIs(g?.name ?? ''), tip]);
       setFlash(gid);
       window.setTimeout(() => setFlash(null), 900);
     }

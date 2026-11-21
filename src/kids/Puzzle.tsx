@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Atlas, MapGroup } from '../map-engine/types';
 import { shuffle, createRng } from '../quiz-engine/random';
 import { speak } from './speech';
-import { addStar, ENCOURAGE, pick, PRAISE } from './store';
+import { addStar, pick } from './store';
+import { ENCOURAGE, PRAISE, placeIt, thisIs } from './phrases';
 
 type Pt = [number, number];
 
@@ -51,7 +52,7 @@ export function Puzzle({ atlas, onDone }: Props) {
   }, [current?.id]);
 
   useEffect(() => {
-    if (current) speak(`${current.name} parçasını yerine koy.`);
+    if (current) speak(placeIt(current.name));
   }, [current]);
 
   const toSvg = (dx: number, dy: number): Pt => {
@@ -91,7 +92,7 @@ export function Puzzle({ atlas, onDone }: Props) {
       setOffset([0, 0]);
       const praise = pick(PRAISE);
       setMessage(`${praise} Bu ${current.name}.`);
-      speak(`${praise} Bu ${current.name}.`);
+      speak([praise, thisIs(current.name)]);
       try {
         navigator.vibrate?.(15);
       } catch {

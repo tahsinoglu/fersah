@@ -33,6 +33,6 @@ export function useStars(): number {
   );
 }
 
-export const PRAISE = ['Harika!', 'Süpersin!', 'Bravo!', 'Aferin sana!', 'Çok güzel!', 'Mükemmel!'];
-export const ENCOURAGE = ['Bir daha dene, yapabilirsin!', 'Çok yaklaştın, bir daha dene!', 'Neredeyse oldu!'];
+
+
 export const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];

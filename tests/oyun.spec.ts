@@ -114,6 +114,10 @@ test.describe('oyun', () => {
 test.describe('Çocuk Köşesi', () => {
   test('yapboz parçası yerine oturur; ebeveyn kilidi doğru cevapla açılır', async ({ page, isMobile }) => {
     test.skip(!isMobile, 'telefon');
+    const sesler: string[] = [];
+    page.on('response', (r) => {
+      if (r.url().includes('/ses/') && r.ok()) sesler.push(r.url());
+    });
     await page.goto('/cocuk/yapboz/memleket');
     await page.waitForSelector('.kids-piece-wrap');
     const piece = (await page.locator('.kids-piece.active').boundingBox())!;
@@ -126,6 +130,8 @@ test.describe('Çocuk Köşesi', () => {
     for (let i = 1; i <= 12; i++) await page.mouse.move(sx + ((ghost.x + ghost.width / 2 - sx) * i) / 12, sy + ((ghost.y + ghost.height / 2 - sy) * i) / 12);
     await page.mouse.up();
     await expect(page.locator('.kids-piece.placed')).toHaveCount(1);
+    // Çocuk sesi paketi: övgü ve cümle kayıtları indirilir
+    await expect.poll(() => sesler.length).toBeGreaterThan(2);
 
     await page.goto('/cocuk');
     await page.getByRole('button', { name: /Büyükler/ }).click();
