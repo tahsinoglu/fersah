@@ -1,0 +1,18 @@
+import { chromium, devices } from 'playwright';
+import { readFileSync } from 'node:fs';
+const b = await chromium.launch();
+const ctx = await b.newContext({ ...devices['Pixel 7'] });
+const p = await ctx.newPage();
+const cdp = await ctx.newCDPSession(p);
+await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+await p.goto('http://localhost:4173/' + (process.argv[2] || 'cihan')); await p.waitForSelector('path.unit'); await p.waitForTimeout(1500);
+const out = '/tmp/claude-0/-home-user/ea8490b8-aa05-51d2-b764-5ebe5935525b/scratchpad/trace.json';
+await b.startTracing(p, { path: out, categories: ['devtools.timeline', 'disabled-by-default-devtools.timeline'] });
+await p.locator(`path[data-u="${process.argv[3] || 'COD'}"]`).tap();
+await p.waitForTimeout(1000);
+await b.stopTracing();
+const ev = JSON.parse(readFileSync(out, 'utf8')).traceEvents;
+const sum = {};
+for (const e of ev) if (e.ph === 'X' && e.dur) sum[e.name] = (sum[e.name] || 0) + e.dur / 1000;
+console.log(Object.entries(sum).sort((a, c) => c[1] - a[1]).slice(0, 16).map(([k, v]) => v.toFixed(0) + 'ms ' + k).join('\n'));
+await b.close();

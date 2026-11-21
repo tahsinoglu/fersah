@@ -1,0 +1,16 @@
+import { chromium, devices } from 'playwright';
+const b = await chromium.launch();
+const ctx = await b.newContext({ ...devices['Pixel 7'] });
+const p = await ctx.newPage();
+const cdp = await ctx.newCDPSession(p);
+await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+await p.goto('http://localhost:4173/cihan'); await p.waitForSelector('path.unit'); await p.waitForTimeout(1500);
+await cdp.send('Profiler.enable'); await cdp.send('Profiler.start');
+await p.locator('path[data-u="COD"]').tap();
+await p.waitForTimeout(1000);
+const { profile } = await cdp.send('Profiler.stop');
+const self = new Map();
+const dt = profile.timeDeltas; const byId = new Map(profile.nodes.map(n => [n.id, n]));
+profile.samples.forEach((id, i) => { const n = byId.get(id); const k = n.callFrame.functionName + ' ' + (n.callFrame.url.split('/').pop()) + ':' + n.callFrame.lineNumber; self.set(k, (self.get(k) || 0) + (dt[i] || 0)); });
+console.log([...self.entries()].sort((a, c) => c[1] - a[1]).slice(0, 14).map(([k, v]) => (v / 1000).toFixed(0) + 'ms ' + k).join('\n'));
+await b.close();

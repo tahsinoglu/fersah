@@ -1,0 +1,12 @@
+import { chromium } from 'playwright';
+const out = process.argv[2];
+const b = await chromium.launch();
+const p = await b.newPage({ viewport: { width: 1440, height: 900 } });
+await p.goto('http://localhost:5173/memleket/ege');
+await p.waitForSelector('path.unit'); await p.waitForTimeout(1200);
+await p.mouse.move(560, 560); await p.waitForTimeout(400);
+await p.screenshot({ path: `${out}/d1.png` });
+await p.goto('http://localhost:5173/cihan/avrupa/almanya');
+await p.waitForSelector('path.unit'); await p.waitForTimeout(1200);
+await p.screenshot({ path: `${out}/d2.png` });
+await b.close();

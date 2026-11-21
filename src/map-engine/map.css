@@ -1,0 +1,226 @@
+/* Harita motoru görünümü. Renkler tema değişkenlerinden gelir (index.css). */
+
+.map-wrap {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.map {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+.map:focus-visible {
+  box-shadow: inset 0 0 0 3px var(--accent-soft);
+}
+
+/* Not: will-change burada ölçülerek kaldırıldı; SVG içinde katmanlaştırma maliyeti kazançtan fazla */
+.world {
+  transform-origin: 0 0;
+  transform-box: view-box;
+}
+
+/* ---------- Birimler (il / ülke) ---------- */
+.unit {
+  --L: var(--l-base);
+  --dl: 0%;
+  fill: hsl(var(--h) calc(var(--s) * var(--sat-mul)) calc(var(--L) + var(--dl)));
+  stroke: var(--unit-line);
+  stroke-width: 0.7;
+  stroke-opacity: 0.32;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  cursor: pointer;
+  transition:
+    fill var(--t-hover) ease,
+    stroke-opacity var(--t-hover) ease,
+    fill-opacity var(--t-dim) ease;
+}
+
+/* Odaktaki grupta alt sınırlar ve tonlar belirginleşir (biraz gecikmeyle) */
+.grp-focus .unit {
+  stroke-opacity: 0.9;
+  transition:
+    fill var(--t-hover) ease var(--t-reveal-delay),
+    stroke-opacity 300ms ease var(--t-reveal-delay),
+    fill-opacity var(--t-dim) ease;
+}
+.grp-focus .unit.t0 { --L: var(--l-t0); }
+.grp-focus .unit.t1 { --L: var(--l-t1); }
+.grp-focus .unit.t2 { --L: var(--l-t2); }
+.grp-focus .unit.t3 { --L: var(--l-t3); }
+
+/*
+ * Sönükleştirme: 250 yolu tek tek soldurmak yerine odak dışını örten tek bir "perde".
+ * Zemin rengiyle %65 örtmek, opaklığı 0,35'e indirmekle aynı görünür ama tek eleman canlandırılır.
+ */
+.veil {
+  fill: var(--bg);
+  fill-rule: evenodd;
+  fill-opacity: 0;
+  pointer-events: none;
+  transition: fill-opacity var(--t-dim) ease;
+}
+.veil.on {
+  fill-opacity: 0.65;
+}
+.grp-focus .unit.sib {
+  fill-opacity: 0.72;
+}
+
+/* Vurgu: dolgu biraz açılır */
+.grp.hot .unit,
+.unit.hot,
+.unit.sel {
+  --dl: var(--l-hot);
+}
+.grp-focus .unit.sib.hot {
+  fill-opacity: 1;
+}
+
+.grp-borders {
+  fill: none;
+  stroke: var(--group-line);
+  stroke-width: 1.15;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+.coast {
+  fill: none;
+  stroke: var(--coast-line);
+  stroke-width: 0.9;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
+/* ---------- Üstüne gelme çizgisi ---------- */
+.hover-line {
+  fill: none;
+  stroke: var(--hot-line);
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--t-hover) ease;
+}
+.hover-line.on {
+  opacity: 1;
+}
+.flying .hover-line,
+.moving .hover-line {
+  opacity: 0;
+}
+/* Geçiş sırasında yollar isabet testine girmez (svg yine hareketi yakalar) */
+.flying .world {
+  pointer-events: none;
+}
+
+/* ---------- Seçim çerçevesi (parlayan ince çizgi) ---------- */
+.glow {
+  pointer-events: none;
+  animation: glow-in 420ms ease both;
+  animation-delay: 260ms;
+}
+.glow path {
+  fill: none;
+  stroke: var(--accent-glow);
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.glow-wide {
+  stroke-width: 6;
+  stroke-opacity: 0.2;
+}
+.glow-line {
+  stroke-width: 1.5;
+}
+@keyframes glow-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ---------- Küçük yerler için dokunma alanı ---------- */
+.hits circle {
+  fill: transparent;
+  stroke: none;
+  cursor: pointer;
+}
+
+/* ---------- Etiketler ---------- */
+.labels {
+  pointer-events: none;
+  animation: labels-in 320ms ease both;
+  animation-delay: var(--t-reveal-delay);
+  transition: opacity 200ms ease;
+}
+/* Kamera geçişi sırasında etiketler gizlenir, geçiş bitince yerleşip belirir */
+.flying .labels {
+  opacity: 0;
+  transition: opacity 90ms ease;
+}
+@keyframes labels-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.lbl {
+  fill: var(--label);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  paint-order: stroke;
+  stroke: var(--label-halo);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  transition: opacity 160ms ease;
+}
+.lbl-group {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.lbl-sel {
+  font-weight: 800;
+}
+.lbl-hidden {
+  opacity: 0;
+}
+.flying .lbl {
+  transition: none;
+}
+
+/* ---------- İpucu baloncuğu (basılı tutma, klavye, küçük yerler) ---------- */
+.map-tip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  padding: 6px 12px;
+  border-radius: 12px;
+  background: var(--glass-strong);
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 15px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  pointer-events: none;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity var(--t-hover) ease;
+}
+.map-tip.tip-on {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .unit, .veil, .hover-line, .lbl, .map-tip { transition-duration: 0ms !important; transition-delay: 0ms !important; }
+  .glow, .labels { animation: none; }
+}
