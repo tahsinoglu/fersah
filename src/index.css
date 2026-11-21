@@ -132,6 +132,8 @@ body,
 }
 html {
   -webkit-text-size-adjust: 100%;
+  /* Çift dokunmayla sayfa yakınlaşmasın; erişilebilirlik için iki parmakla yakınlaştırma açık kalır */
+  touch-action: manipulation;
   background: var(--bg);
 }
 body {

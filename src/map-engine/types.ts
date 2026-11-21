@@ -54,6 +54,8 @@ export interface Atlas {
   frame: Box;
   /** Gezinmeye izin verilen alan */
   extent: Box;
+  /** Projeksiyonun ölçek ve kaydırması (işçiden ana iş parçacığına aktarmak için) */
+  fit: { scale: number; translate: Pt };
   /** [boylam, enlem] → projeksiyon koordinatı */
   project: (lonlat: Pt) => Pt | null;
   /** projeksiyon koordinatı → [boylam, enlem] */

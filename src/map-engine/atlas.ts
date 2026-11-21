@@ -160,7 +160,20 @@ export function buildAtlas(topo: Topology, cfg: AtlasConfig): Atlas {
     unitById: new Map(units.map((u) => [u.id, u])),
     groupById: new Map(groups.map((g) => [g.id, g])),
     groupBorders, outline, frame, extent,
+    fit: { scale: projection.scale(), translate: projection.translate() as Pt },
+    ...projectionFns(projection),
+  };
+}
+
+function projectionFns(projection: GeoProjection): Pick<Atlas, 'project' | 'invert'> {
+  return {
     project: (p) => (projection(p) as Pt | null) ?? null,
     invert: (p) => (projection.invert?.(p) as Pt | null) ?? null,
   };
+}
+
+/** İşçiden gelen (işlevleri olmayan) atlası yeniden kullanılabilir hale getirir */
+export function hydrateAtlas(data: Omit<Atlas, 'project' | 'invert'>, cfg: AtlasConfig): Atlas {
+  const projection = cfg.projection().scale(data.fit.scale).translate(data.fit.translate);
+  return { ...data, ...projectionFns(projection) };
 }

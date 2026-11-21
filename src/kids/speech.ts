@@ -3,8 +3,14 @@ export function canSpeak(): boolean {
   return typeof window !== 'undefined' && 'speechSynthesis' in window;
 }
 
+/** Kullanıcı sayfaya henüz dokunmadıysa otomatik okuma yapılmaz (tarayıcılar engelliyor) */
+function activated(): boolean {
+  const ua = (navigator as Navigator & { userActivation?: { hasBeenActive: boolean } }).userActivation;
+  return ua ? ua.hasBeenActive : true;
+}
+
 export function speak(text: string): void {
-  if (!canSpeak()) return;
+  if (!canSpeak() || !activated()) return;
   try {
     const s = window.speechSynthesis;
     s.cancel();

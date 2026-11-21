@@ -1,6 +1,6 @@
 import { geoConicConformal, geoEqualEarth } from 'd3-geo';
 import type { Topology } from 'topojson-specification';
-import { buildAtlas, type AtlasConfig } from '../map-engine/atlas';
+import { buildAtlas, hydrateAtlas, type AtlasConfig } from '../map-engine/atlas';
 import type { Atlas } from '../map-engine/types';
 import { BOLGELER, ILLER_BY_PLAKA } from './memleket';
 import { AD_DUZELTME, EK_SECILEBILIR, KITA_DUZELTME, KITALAR, KONUM_DUZELTME, ulkeMi } from './cihan';
@@ -59,19 +59,46 @@ const FILES: Record<AtlasId, string> = { memleket: 'geo/turkiye.topo.json', ciha
 
 const cache = new Map<AtlasId, Promise<Atlas>>();
 
+export const atlasUrl = (id: AtlasId) => import.meta.env.BASE_URL + FILES[id];
+
+function loadOnMainThread(id: AtlasId): Promise<Atlas> {
+  return fetch(atlasUrl(id))
+    .then((r) => {
+      if (!r.ok) throw new Error(`${FILES[id]}: ${r.status}`);
+      return r.json() as Promise<Topology>;
+    })
+    .then((topo) => buildAtlas(topo, CONFIGS[id]));
+}
+
+/** Harita verisi bir Web Worker'da işlenir; ana iş parçacığı (dokunma, animasyon) donmaz. */
+function loadInWorker(id: AtlasId): Promise<Atlas> {
+  return new Promise((resolve, reject) => {
+    const w = new Worker(new URL('./atlas.worker.ts', import.meta.url), { type: 'module' });
+    w.onmessage = (e: MessageEvent<{ ok: true; atlas: Omit<Atlas, 'project' | 'invert'> } | { ok: false; error: string }>) => {
+      w.terminate();
+      if (e.data.ok) resolve(hydrateAtlas(e.data.atlas, CONFIGS[id]));
+      else reject(new Error(e.data.error));
+    };
+    w.onerror = (e) => {
+      w.terminate();
+      reject(e);
+    };
+    w.postMessage({ id, url: new URL(atlasUrl(id), location.href).href });
+  });
+}
+
 export function loadAtlas(id: AtlasId): Promise<Atlas> {
   let p = cache.get(id);
   if (!p) {
-    p = fetch(import.meta.env.BASE_URL + FILES[id])
-      .then((r) => {
-        if (!r.ok) throw new Error(`${FILES[id]}: ${r.status}`);
-        return r.json() as Promise<Topology>;
-      })
-      .then((topo) => buildAtlas(topo, CONFIGS[id]));
+    p = (typeof Worker !== 'undefined' ? loadInWorker(id) : Promise.reject(new Error('worker yok'))).catch(() => loadOnMainThread(id));
     p.catch(() => cache.delete(id));
     cache.set(id, p);
   }
   return p;
+}
+
+export function atlasConfig(id: AtlasId): AtlasConfig {
+  return CONFIGS[id];
 }
 
 /** Test ve betikler için: hazır topolojiden atlas kur */
