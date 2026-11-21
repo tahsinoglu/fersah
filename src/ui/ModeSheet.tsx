@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { t } from '../i18n';
 import type { AtlasId } from '../data/atlases';
-import { MODES, type ModeId } from '../quiz-engine/types';
+import { modesFor, type ModeId } from '../quiz-engine/types';
 import { IconClose } from './icons';
 import { ModeIcon } from './ModeIcon';
 
@@ -42,7 +42,7 @@ export function ModeSheet({ atlasId, scopeSlug, scopeLabel, onClose }: { atlasId
           </button>
         </div>
         <ul className="flex flex-col gap-2">
-          {MODES.map((m, i) => (
+          {modesFor(atlasId).map((m, i) => (
             <li key={m}>
               <button
                 ref={i === 0 ? first : undefined}

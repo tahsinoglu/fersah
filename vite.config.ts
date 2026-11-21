@@ -37,7 +37,16 @@ export default defineConfig(({ mode }) => ({
           ],
         },
         workbox: {
-          globPatterns: ['**/*.{js,css,html,svg,png,woff2,json}'],
+          globPatterns: ['**/*.{js,css,html,svg,png,woff2,json,mp3}'],
+          // Bayraklar (2,3 MB) ve sesler ilk kurulumda indirilmez; gösterildikçe önbelleğe alınır
+          globIgnores: ['**/flags/**', '**/ses/**'],
+          runtimeCaching: [
+            {
+              urlPattern: ({ url }) => url.pathname.startsWith('/flags/') || url.pathname.startsWith('/ses/'),
+              handler: 'CacheFirst',
+              options: { cacheName: 'fersah-medya', expiration: { maxEntries: 800 } },
+            },
+          ],
           navigateFallback: '/index.html',
           maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         },

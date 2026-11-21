@@ -3,11 +3,11 @@ import { Navigate, useNavigate, useParams } from 'react-router';
 import { t } from '../i18n';
 import { ATLAS_IDS, loadAtlas, type AtlasId } from '../data/atlases';
 import { MapView, type MapLine, type MapMark, type MapViewHandle } from '../map-engine/MapView';
-import type { Atlas, MapUnit, Selection } from '../map-engine/types';
+import type { Atlas, Selection } from '../map-engine/types';
 import type { Insets } from '../map-engine/camera';
 import { generateDaily, generateRound } from '../quiz-engine/generate';
 import { dailyKey, dailyNumber, dailySeed } from '../quiz-engine/daily';
-import { MODES, type ModeId, type Question, type RoundPlan } from '../quiz-engine/types';
+import { modesFor, specialMode, type ModeId, type Question, type RoundPlan } from '../quiz-engine/types';
 import { NEAR_SCALE_KM, shareText, tileOf } from '../scoring/score';
 import { weightOf } from '../progress/leitner';
 import { cardKey, getProgress, recordAnswer, recordDaily, recordRound, useProgress } from '../progress/store';
@@ -18,13 +18,11 @@ import { prefersReducedMotion } from '../lib/theme';
 import { useSafeArea } from '../lib/viewport';
 import { pathFor } from '../lib/routes';
 import { Loading } from '../ui/Loading';
-import { FeedbackCard, GameHud, OptionGrid, PromptCard, Silhouette, Stopwatch, type OptionState } from '../ui/game';
+import { FeedbackCard, FlagImage, GameHud, OptionGrid, PlateBadge, PromptCard, Stopwatch, type OptionState } from '../ui/game';
 import { ResultView } from '../ui/ResultView';
 
 type GameMode = ModeId | 'gunluk';
 const NONE: ReadonlySet<string> = new Set();
-/** Siluet için en küçük şekil boyu (projeksiyon birimi; dünya genişliği 1000) */
-const SILHOUETTE_MIN = 3.2;
 
 /** /oyun/:atlas/:mode/:scope ve /gunluk/:atlas */
 export function GamePage({ daily = false }: { daily?: boolean }) {
@@ -39,7 +37,7 @@ export function GamePage({ daily = false }: { daily?: boolean }) {
     loadAtlas(atlasId).then(setAtlas, () => setError(true));
   }, [atlasId]);
 
-  if (!ATLAS_IDS.includes(atlasId) || (!daily && !MODES.includes(mode as ModeId))) return <Navigate to="/oyna" replace />;
+  if (!ATLAS_IDS.includes(atlasId) || (!daily && !modesFor(atlasId).includes(mode as ModeId))) return <Navigate to="/oyna" replace />;
 
   let scope = 'tum';
   if (!daily && scopeParam && scopeParam !== 'tum') {
@@ -82,9 +80,9 @@ function Game({ atlasId, atlas, mode, scope }: { atlasId: AtlasId; atlas: Atlas;
 
   const units = useMemo(() => {
     const all = scopeUnits(atlasId, atlas, scope);
-    if (mode !== 'siluet' || atlasId !== 'cihan') return all;
-    // Çok küçük ülkelerin silueti tanınamaz (Andorra, Malta, ada devletleri…): siluet havuzundan çıkar
-    return all.filter((u) => Math.max(u.frame[1][0] - u.frame[0][0], u.frame[1][1] - u.frame[0][1]) >= SILHOUETTE_MIN);
+    // Bayrak sorusu için bayrağı olan ülkeler (günlükte de özel soru bayrak olabilir)
+    if (atlasId === 'cihan' && (mode === 'bayrak' || mode === 'gunluk')) return all.filter((u) => !!u.extra.bayrak);
+    return all;
   }, [atlasId, atlas, scope, mode]);
   const pickable = useMemo(() => new Set(units.map((u) => u.id)), [units]);
   const names = useMemo(() => Object.fromEntries(atlas.units.map((u) => [u.id, u.name])), [atlas]);
@@ -94,7 +92,7 @@ function Game({ atlasId, atlas, mode, scope }: { atlasId: AtlasId; atlas: Atlas;
   const plan: RoundPlan = useMemo(() => {
     const items = toItems(units);
     const neighbors = (id: string) => atlas.unitById.get(id)?.neighbors ?? [];
-    if (mode === 'gunluk') return generateDaily(items, dailySeed(atlasId, today), neighbors);
+    if (mode === 'gunluk') return generateDaily(items, dailySeed(atlasId, today), neighbors, specialMode(atlasId));
     const cards = getProgress().cards;
     return generateRound({
       pool: items, mode, seed: `${Date.now()}:${round}`, neighbors,
@@ -123,7 +121,8 @@ function Game({ atlasId, atlas, mode, scope }: { atlasId: AtlasId; atlas: Atlas;
   const isSpeedrun = mode === 'hepsi';
 
   const selection: Selection = scope === 'tum' ? {} : { groupId: scope };
-  const optionsVisible = q && (q.kind === 'neresi' || q.kind === 'siluet') && phase !== 'done';
+  const isCard = q && (q.kind === 'plaka' || q.kind === 'bayrak');
+  const optionsVisible = q && (q.kind === 'neresi' || isCard) && phase !== 'done';
   const insets: Insets = {
     top: safe.top + 150,
     left: 10,
@@ -279,7 +278,7 @@ function Game({ atlasId, atlas, mode, scope }: { atlasId: AtlasId; atlas: Atlas;
     setOptStates(states);
     const all = commit(a);
     if (a.correct) {
-      if (q.kind === 'siluet') setHighlight(q.target);
+      if (isCard) setHighlight(q.target);
       celebrate(q.target, all, a.score);
     } else {
       vibrate(30);
@@ -357,8 +356,11 @@ function Game({ atlasId, atlas, mode, scope }: { atlasId: AtlasId; atlas: Atlas;
       promptLabel = t.game.nearPrompt;
       promptTitle = `${accusative(target.name)} bul`;
     } else {
-      promptLabel = scopeName(atlasId, atlas, scope);
-      promptTitle = t.game.silhouettePrompt;
+      promptLabel = t.modes[q.kind].name;
+      promptTitle =
+        q.kind === 'plaka'
+          ? q.variant === 'ad' ? t.game.plakaAd(target.name) : t.game.plakaKod
+          : q.variant === 'ad' ? t.game.bayrakAd(target.name) : t.game.bayrakKod;
     }
   }
 
@@ -388,7 +390,7 @@ function Game({ atlasId, atlas, mode, scope }: { atlasId: AtlasId; atlas: Atlas;
 
   return (
     <>
-      <div className={q?.kind === 'siluet' && phase === 'ask' ? 'invisible' : ''}>
+      <div className={isCard && phase === 'ask' ? 'invisible' : ''}>
         <MapView
           ref={mapRef}
           atlas={atlas}
@@ -419,9 +421,9 @@ function Game({ atlasId, atlas, mode, scope }: { atlasId: AtlasId; atlas: Atlas;
         </div>
       </header>
 
-      {q?.kind === 'siluet' && phase === 'ask' && target && (
+      {isCard && phase === 'ask' && target && q.variant === 'kod' && (
         <div className="absolute inset-x-0 z-10 grid place-items-center px-6" style={{ top: safe.top + 170, bottom: safe.bottom + 190 }}>
-          <Silhouette unit={target as MapUnit} detailed={atlasId === 'cihan'} />
+          {q.kind === 'plaka' ? <PlateBadge code={String(target.extra.plaka)} large /> : <FlagImage iso={String(target.extra.bayrak)} large />}
         </div>
       )}
 
@@ -436,6 +438,7 @@ function Game({ atlasId, atlas, mode, scope }: { atlasId: AtlasId; atlas: Atlas;
           {phase === 'reveal' && last ? (
             <FeedbackCard
               ok={last.correct}
+              near={last.kind === 'yakin' && !last.correct && last.score >= 400}
               title={fbTitle}
               lines={fbLines}
               fact={fact}
@@ -444,7 +447,22 @@ function Game({ atlasId, atlas, mode, scope }: { atlasId: AtlasId; atlas: Atlas;
               nextLabel={index + 1 >= total ? t.game.finish : t.game.next}
             />
           ) : optionsVisible && q?.options ? (
-            <OptionGrid options={q.options} names={names} states={optStates} disabled={phase !== 'ask'} onPick={onOption} />
+            <OptionGrid
+              options={q.options}
+              names={names}
+              states={optStates}
+              disabled={phase !== 'ask'}
+              onPick={onOption}
+              render={
+                isCard && q.variant === 'ad'
+                  ? (id) => {
+                      const u = atlas.unitById.get(id);
+                      return q.kind === 'plaka' ? <PlateBadge code={String(u?.extra.plaka)} /> : <FlagImage iso={String(u?.extra.bayrak)} />;
+                    }
+                  : undefined
+              }
+              labelOf={isCard && q.variant === 'ad' ? (id) => (q.kind === 'plaka' ? `Plaka ${atlas.unitById.get(id)?.extra.plaka}` : `Bayrak ${q.options!.indexOf(id) + 1}`) : undefined}
+            />
           ) : null}
         </div>
       </footer>

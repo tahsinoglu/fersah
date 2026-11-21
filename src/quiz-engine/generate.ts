@@ -27,7 +27,10 @@ export function pickOptions(target: QuizItem, pool: QuizItem[], rng: Rng, neighb
 }
 
 function makeQuestion(kind: QuestionKind, target: QuizItem, pool: QuizItem[], rng: Rng, neighbors?: (id: string) => string[]): Question {
-  if (kind === 'neresi' || kind === 'siluet') return { kind, target: target.id, options: pickOptions(target, pool, rng, neighbors) };
+  if (kind === 'neresi') return { kind, target: target.id, options: pickOptions(target, pool, rng, neighbors) };
+  if (kind === 'plaka' || kind === 'bayrak') {
+    return { kind, target: target.id, options: pickOptions(target, pool, rng, neighbors), variant: rng() < 0.5 ? 'kod' : 'ad' };
+  }
   return { kind, target: target.id };
 }
 
@@ -43,15 +46,24 @@ export function generateRound(o: GenerateOptions): RoundPlan {
 }
 
 /** Günün Haritası: herkese aynı 10 soru, karışık türlerde. */
-export const DAILY_KINDS: QuestionKind[] = ['bul', 'neresi', 'bul', 'yakin', 'siluet', 'neresi', 'bul', 'yakin', 'neresi', 'bul'];
+/** 5. soru bölüme özeldir (Memleket'te plaka, Cihan'da bayrak) */
+export const DAILY_KINDS: (QuestionKind | 'ozel')[] = ['bul', 'neresi', 'bul', 'yakin', 'ozel', 'neresi', 'bul', 'yakin', 'neresi', 'bul'];
 
-export function generateDaily(pool: QuizItem[], seed: string, neighbors?: (id: string) => string[]): RoundPlan {
+export function generateDaily(
+  pool: QuizItem[],
+  seed: string,
+  neighbors?: (id: string) => string[],
+  special: 'plaka' | 'bayrak' = 'plaka',
+): RoundPlan {
   const rng = createRng(seed);
   // Havuzu kararlı sıraya koy ki veri sırası değişse de aynı gün aynı sorular gelsin
   const sorted = [...pool].sort((a, b) => (a.id < b.id ? -1 : 1));
   const targets = shuffle(sorted, rng).slice(0, DAILY_KINDS.length);
   return {
     mode: 'gunluk',
-    questions: targets.map((t, i) => makeQuestion(DAILY_KINDS[i], t, sorted, rng, neighbors)),
+    questions: targets.map((t, i) => {
+      const k = DAILY_KINDS[i];
+      return makeQuestion(k === 'ozel' ? special : k, t, sorted, rng, neighbors);
+    }),
   };
 }

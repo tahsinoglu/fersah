@@ -16,7 +16,7 @@ export interface Answer {
   nearest?: [number, number];
 }
 
-/** Seçmeli sorular (bul, neresi, siluet) */
+/** Seçmeli sorular (bul, neresi, plaka, bayrak) */
 export function evaluateChoice(kind: QuestionKind, target: string, picked: string | null, ms: number): Answer {
   const correct = picked === target;
   return { target, kind, correct, score: answerScore(correct, ms), ms, picked };

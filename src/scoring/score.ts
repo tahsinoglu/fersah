@@ -8,7 +8,7 @@ export function nearShotScore(km: number, scaleKm: number): number {
 
 export const NEAR_SCALE_KM = { memleket: 150, cihan: 1500 } as const;
 
-/** Bul / Bu Neresi / Siluet: doğruya 100 + hızlı cevaba 50'ye kadar ek puan (10 sn'de sıfırlanır) */
+/** Bul / Burası Neresi / Plaka / Bayrak: doğruya 100 + hızlı cevaba 50'ye kadar ek puan (10 sn'de sıfırlanır) */
 export function answerScore(correct: boolean, ms: number): number {
   if (!correct) return 0;
   return 100 + Math.max(0, Math.round(50 * (1 - ms / 10000)));

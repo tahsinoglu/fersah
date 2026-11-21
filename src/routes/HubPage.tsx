@@ -2,7 +2,7 @@ import { Link } from 'react-router';
 import { t } from '../i18n';
 import type { AtlasId } from '../data/atlases';
 import { dailyKey, dailyNumber } from '../quiz-engine/daily';
-import { MODES } from '../quiz-engine/types';
+import { modesFor } from '../quiz-engine/types';
 import { useProgress } from '../progress/store';
 import { formatDuration } from '../scoring/score';
 import { ModeIcon } from '../ui/ModeIcon';
@@ -55,7 +55,7 @@ function QuickRow({ atlasId }: { atlasId: AtlasId }) {
     <div data-atlas={atlasId}>
       <SectionTitle>{t.game[`scopeAll_${atlasId}`]}</SectionTitle>
       <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4">
-        {MODES.map((m) => (
+        {modesFor(atlasId).map((m) => (
           <Link
             key={m}
             to={`/oyun/${atlasId}/${m}/tum`}

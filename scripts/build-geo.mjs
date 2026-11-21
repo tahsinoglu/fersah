@@ -1,7 +1,7 @@
 // Ham Natural Earth verisini indirir, sadeleştirir ve TopoJSON'a çevirir.
 // Kullanım: npm run geo
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import polylabel from 'polylabel';
@@ -48,8 +48,8 @@ run([
 const ulkeGeo = join(src, 'ulkeler.geojson');
 run([
   '-i', join(src, 'ne_10m_admin_0_countries_tur.shp'), 'encoding=utf8',
-  '-each', 'id=ADM0_A3, ad=NAME_TR, kita=CONTINENT, tur=TYPE, nufus=POP_EST, lx=LABEL_X, ly=LABEL_Y',
-  '-filter-fields', 'id,ad,kita,tur,nufus,lx,ly',
+  '-each', 'id=ADM0_A3, iso2=ISO_A2_EH, ad=NAME_TR, kita=CONTINENT, tur=TYPE, nufus=POP_EST, lx=LABEL_X, ly=LABEL_Y',
+  '-filter-fields', 'id,iso2,ad,kita,tur,nufus,lx,ly',
   '-simplify', '3%', 'keep-shapes', 'weighting=0.7',
   '-clean',
   '-o', 'format=geojson', 'precision=0.001', ulkeGeo,
@@ -105,14 +105,6 @@ for (const f of ulkeler.features) {
 }
 writeFileSync(ulkeGeo, JSON.stringify(ulkeler));
 
-// Siluet modu için daha ayrıntılı ülke şekilleri (yalnızca o modda yüklenir)
-run([
-  '-i', join(src, 'ne_10m_admin_0_countries_tur.shp'), 'encoding=utf8',
-  '-each', 'id=ADM0_A3', '-filter-fields', 'id',
-  '-simplify', '12%', 'keep-shapes', 'weighting=0.7', '-clean',
-  '-o', 'format=topojson', 'quantization=100000', join(out, 'dunya-siluet.topo.json'),
-]);
-
 run(['-i', ilGeo, 'name=iller', '-o', 'format=topojson', 'quantization=100000', join(out, 'turkiye.topo.json')]);
 run(['-i', ulkeGeo, 'name=ulkeler', '-o', 'format=topojson', 'quantization=100000', join(out, 'dunya.topo.json')]);
 // Başkentler (Natural Earth yerleşimleri, "Admin-0 capital")
@@ -129,4 +121,23 @@ for (const c of JSON.parse(readFileSync(capCsv, 'utf8'))) (caps[c.ulke] ??= []).
 for (const k of Object.keys(caps)) caps[k].sort((a, b) => a.ad.localeCompare(b.ad, 'tr'));
 mkdirSync(join(root, 'src', 'data', 'generated'), { recursive: true });
 writeFileSync(join(root, 'src', 'data', 'generated', 'baskentler.json'), JSON.stringify(caps, null, 0));
+// Bayraklar (flag-icons, MIT): yalnızca haritadaki ülkeler için public/flags/<iso2>.svg
+const flagSrc = join(root, 'node_modules', 'flag-icons', 'flags', '4x3');
+const flagOut = join(root, 'public', 'flags');
+mkdirSync(flagOut, { recursive: true });
+let flagCount = 0;
+const flagIds = [];
+for (const f of ulkeler.features) {
+  const iso = String(f.properties.iso2 ?? '').toLowerCase();
+  if (!/^[a-z]{2}$/.test(iso)) continue;
+  const from = join(flagSrc, `${iso}.svg`);
+  if (!existsSync(from)) continue;
+  cpSync(from, join(flagOut, `${iso}.svg`));
+  flagCount++;
+  flagIds.push(f.properties.id);
+}
+writeFileSync(join(root, 'src', 'data', 'generated', 'bayraklar.json'), JSON.stringify(Object.fromEntries(
+  ulkeler.features.filter((f) => flagIds.includes(f.properties.id)).map((f) => [f.properties.id, String(f.properties.iso2).toLowerCase()]),
+)));
+console.log('bayrak', flagCount);
 console.log('tamam');

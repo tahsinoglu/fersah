@@ -3,6 +3,7 @@ import type { Topology } from 'topojson-specification';
 import { buildAtlas, hydrateAtlas, type AtlasConfig } from '../map-engine/atlas';
 import type { Atlas } from '../map-engine/types';
 import { BOLGELER, ILLER_BY_PLAKA } from './memleket';
+import flags from './generated/bayraklar.json';
 import { AD_DUZELTME, EK_SECILEBILIR, KITA_DUZELTME, KITALAR, KONUM_DUZELTME, ulkeMi } from './cihan';
 
 export type AtlasId = 'memleket' | 'cihan';
@@ -49,7 +50,7 @@ const cihanConfig: AtlasConfig = {
       selectable: ulke || EK_SECILEBILIR.includes(id),
       label: KONUM_DUZELTME[id]?.etiket ?? [Number(p.lx), Number(p.ly)],
       box: KONUM_DUZELTME[id]?.kutu,
-      extra: { ulke, nufus: Number(p.nufus) },
+      extra: { ulke, nufus: Number(p.nufus), bayrak: (flags as Record<string, string>)[id] },
     };
   },
 };

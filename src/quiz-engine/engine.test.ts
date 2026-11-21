@@ -42,6 +42,14 @@ describe('soru üretimi', () => {
     const opts = pickOptions(t, pool, createRng(3));
     expect(opts.filter((id) => id !== t.id && pool.find((p) => p.id === id)!.groupId === 'a').length).toBeGreaterThanOrEqual(2);
   });
+  it('plaka/bayrak soruları dört şık ve bir yön taşır', () => {
+    const r = generateRound({ pool, mode: 'plaka', seed: 'p' });
+    for (const q of r.questions) {
+      expect(q.options).toHaveLength(4);
+      expect(['kod', 'ad']).toContain(q.variant);
+    }
+    expect(new Set(r.questions.map((q) => q.variant)).size).toBe(2);
+  });
   it('küçük havuzda soru sayısı havuzu aşmaz', () => {
     expect(generateRound({ pool: pool.slice(0, 4), mode: 'bul', seed: 1 }).questions).toHaveLength(4);
   });
@@ -56,7 +64,8 @@ describe('Günün Haritası', () => {
     const a = generateDaily(pool, 'gunluk:memleket:2026-11-21');
     const b = generateDaily([...pool].reverse(), 'gunluk:memleket:2026-11-21');
     expect(a).toEqual(b);
-    expect(a.questions.map((q) => q.kind)).toEqual(DAILY_KINDS);
+    expect(a.questions.map((q) => q.kind)).toEqual(DAILY_KINDS.map((k) => (k === 'ozel' ? 'plaka' : k)));
+    expect(generateDaily(pool, 'x', undefined, 'bayrak').questions[4].kind).toBe('bayrak');
     expect(generateDaily(pool, 'gunluk:memleket:2026-11-22')).not.toEqual(a);
   });
   it('Memleket günü Türkiye saatine, Cihan günü UTC\'ye göre değişir', () => {
