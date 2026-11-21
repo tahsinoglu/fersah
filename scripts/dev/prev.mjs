@@ -1,0 +1,12 @@
+import { chromium, devices } from 'playwright';
+const b = await chromium.launch();
+const ctx = await b.newContext({ ...devices['iPhone 13'] });
+const p = await ctx.newPage();
+const errs = []; p.on('pageerror', e => errs.push(String(e))); p.on('console', m => m.type()==='error' && errs.push(m.text()));
+await p.goto('http://localhost:8090/');
+await p.waitForSelector('path.unit', { timeout: 10000 });
+await p.waitForTimeout(500);
+await p.locator('path[data-u="45"]').tap(); await p.waitForTimeout(1200);
+await p.screenshot({ path: process.argv[2] });
+console.log('ok', await p.locator('h2').first().textContent(), errs);
+await b.close();
