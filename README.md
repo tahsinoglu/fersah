@@ -108,7 +108,11 @@ adlarıyla `public/ses/` altına konması yeterlidir (`src/kids/ses.json` cümle
 ## Bilgi kartlarının doğrulama durumu
 
 `src/data/facts/*.json` içindeki 81 il ve 43 ülke kartında `dogrulandi` alanı var. Doğrulanan kart `true`
-yapılır; kaynağında bulunamayan kart düzeltilir ya da boşaltılır. Ayrıntı: bkz. aşağıdaki "Son doğrulama".
+yapılır; kaynağında bulunamayan kart düzeltilir ya da boşaltılır.
+
+Son doğrulama (2026-11-22): geliştirme ortamının çıkış adresi Vikipedi'de paylaşıldığı için istekler sürekli hız
+sınırına (429) takıldı; gece boyunca yalnızca 3 makale indirilebildi. Adana, Afyonkarahisar ve Ağrı kartları kaynak
+metinle karşılaştırılıp doğrulandı (`true`); kalan 121 kart henüz doğrulanmadı (`false`).
 
 ## Ölçümler
 
