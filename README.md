@@ -1,140 +1,117 @@
-# Memleket & Cihan
+# Fersah · Harita oyunu
 
-Türkiye ve dünya harita bilgisini geliştiren, telefonda uygulama gibi çalışan bir web oyunu.
+Türkiye ve dünya harita bilgisini geliştiren, telefonda uygulama gibi çalışan bir web oyunu (PWA).
 
-- **Memleket:** Türkiye → coğrafi bölge → il
+- **Memleket:** Türkiye → coğrafi bölge → il (+ ilçeler, metin tabanlı Memleket Testi)
 - **Cihan:** Dünya → kıta → ülke
+- **Küçük Seyyah:** okul öncesi için yapboz, bul, keşfet; önceden kaydedilmiş çocuksu ses
 
-Şu an **Aşama 1** tamam: seviyeli harita, beş oyun modu, Günün Haritası (yerel), öğretici yapı,
-istatistikler, öğrenme haritası, Çocuk Köşesi ve çevrimdışı çalışan PWA. Sunucu yok; ilerleme yalnızca cihazda.
-
-**Canlı:** https://fersah.vercel.app · **Kod:** https://github.com/tahsinoglu/fersah
+**Canlı:** https://fersah.vercel.app · **Kod:** https://github.com/tahsinoglu/fersah ·
+Sürüm numarası uygulamanın altında görünür; dokununca "Yenilikler" açılır (`src/data/changelog.ts`).
 
 ## Kurulum
 
 ```bash
 npm install
-npm run dev        # http://localhost:5173 (aynı ağdaki telefondan da açılır)
+npm run dev        # http://localhost:5173 (yerel /api/fersah dahil; veriler .data/ klasöründe)
 ```
-
-Diğer komutlar:
 
 | Komut | Ne yapar |
 |---|---|
 | `npm run build` | Tip denetimi + üretim derlemesi (`dist/`, PWA dahil) |
-| `npm run preview` | Derlenmiş sürümü sunar (PWA'yı denemek için) |
-| `npm test` | Birim testleri (Vitest) |
-| `npm run e2e` | Tarayıcı testleri (Playwright; telefon + masaüstü) |
-| `npm run geo` | Harita verisini indirip `public/geo/*.topo.json` dosyalarını yeniden üretir |
+| `npm run preview` | Derlenmiş sürümü sunar |
+| `npm test` | Birim testleri (Vitest: soru motoru, puanlama, sunucu mantığı, ses paketi) |
+| `npm run e2e` | Tarayıcı testleri (Playwright; telefon + masaüstü; hesap akışı dahil) |
+| `npm run geo` | Harita, bayrak, ilçe ve karayolu verisini yeniden üretir |
 
 ### Yayın
 
-Vercel projesi: `fersah` (Vite, `npm run build`, çıktı `dist`). `vercel.json` tüm adresleri `index.html`'e yönlendirir
-(seviyeli adresler doğrudan açılabilsin diye) ve servis çalışanını önbelleğe almaz. Vercel GitHub deposuna bağlı: `main`'e her gönderim otomatik olarak
-üretime yayınlanır, diğer dallar önizleme adresi alır. Gerekirse elle yayın: `scripts/deploy.sh`.
+Vercel projesi `fersah`, GitHub deposuna bağlı: `main`'e her gönderim üretime çıkar. Sürüm yükseltirken
+`package.json` sürümü ve `src/data/changelog.ts` birlikte güncellenir.
 
-### Telefona ekleme
+Sunucu ortam değişkenleri (Vercel'de şifreli; depoda yok): `BLOB_READ_WRITE_TOKEN` (Vercel Blob deposu
+`fersah-veri`), `FERSAH_SECRET` (oturum imzası ve gizli kullanıcı yolları için rastgele anahtar).
 
-Üretim sürümü PWA'dır. HTTPS üzerinden yayınlanınca iPhone'da Safari → Paylaş → **Ana Ekrana Ekle**,
-Android'de Chrome → **Uygulamayı yükle**. Uygulama kabuğu ve harita verisi önbelleğe alınır; çevrimdışı açılır.
+**Duman testi:** `vercel deploy --build-env FERSAH_SMOKE=1` ile açılan önizleme derlemesi, gerçek Blob deposunda ve
+canlı API'de giriş → tur → sıralama → tekrar giriş → silme akışını koşar; sonuçlar derleme kaydında `[duman]` satırlarıdır.
+
+## Hesaplar ve sıralama (sunucu)
+
+- Giriş: **kullanıcı adı + 4 haneli şifre**. Aynı adla girince eski puan ve ilerleme geri gelir; "Tahsinoğlu" ile
+  "tahsinoglu" aynı hesaptır. Misafir olarak da oynanabilir (ilerleme yalnızca cihazda kalır).
+- `api/fersah.ts` → `server/handler.ts` (HTTP'den bağımsız; yerelde Vite eklentisi aynısını çağırır).
+  İşlemler: `giris`, `ilerleme`, `tur`, `pano`, `sil`.
+- Depolama Vercel Blob'dur. Blob veritabanı değildir ve aynı dosyanın üzerine yazınca CDN bir süre eski içerik
+  döndürür; bu yüzden her mantıksal kayıt sürümlü bir klasördür, her yazış yeni değişmez bir dosya açar ve eskiler
+  silinir (`server/storage.ts`). Her oyuncunun kendi kaydı vardır, ortak dosya yoktur: aynı anda oynayanlar
+  birbirinin puanını ezmez.
+- Hile koruması (`server/core.ts`): turun olası en yüksek puanı, soru başına en az 600 ms, iki tur arası en az
+  8 sn, Günün Haritası günde bir kez.
+- Şifreler scrypt ile özetlenir; kullanıcı dosyalarının yolu gizli anahtarla türetilir. Hesap ve tüm veriler
+  Sıralama sayfasından silinebilir (KVKK).
+- **Ölçek sınırı:** sıralama, oyuncu kayıtları listelenerek hesaplanır (30 sn önbellek). Birkaç bin oyuncuya kadar
+  yeterlidir; daha büyük kitle için Neon/Supabase gibi bir veritabanına geçilmeli (Vercel'de entegrasyon
+  koşullarının hesap sahibince onaylanması gerekir).
 
 ## Klasör yapısı
 
 ```
-scripts/build-geo.mjs   Natural Earth → sadeleştirme → TopoJSON + başkentler
-public/geo/             turkiye.topo.json (37 KB), dunya.topo.json (210 KB; gzip ~70 KB),
-                        dunya-siluet.topo.json (yalnızca Siluet modunda yüklenir)
-src/map-engine/         Oyundan bağımsız harita motoru: MapView, kamera, etiketler, etkileşim, oyun efektleri
-src/data/               İl–bölge–plaka tablosu, kıta kuralları, atlas yükleyici (Web Worker),
-                        facts/*.json (bilgi kartları), generated/baskentler.json
-src/quiz-engine/        Soru motoru (saf TS): tohumlu rastgelelik, 5 mod, çeldiriciler, Günün Haritası
-src/scoring/            Puanlama (saf TS): haversine, Yakın Atış, hız puanı, paylaşım metni
-src/progress/           Leitner kutuları, seri, cihazda saklanan ilerleme
-src/game/               Soru havuzu, bilgi kartı/başkent erişimi, cevap değerlendirme
-src/routes/             Harita, oyun, Oyna merkezi, istatistik sayfaları
-src/kids/               Çocuk Köşesi: yapboz, bul, keşfet, sesli okuma, ebeveyn kilidi, elle çizilmiş simgeler
-src/ui/                 Ortak arayüz parçaları
-src/i18n/tr.ts          Tüm arayüz metinleri (İngilizce için en.ts eklenecek)
-tests/                  Playwright uçtan uca testleri
-```
-
-Harita motoru (`src/map-engine`) dışarıya yalnızca `atlas`, `selection`, `onSelect`, `onUp` alır;
-oyun katmanı (Aşama 1) bunun üstüne kurulacak.
-
-## Adresler
-
-Her seviyenin adresi var; tarayıcının geri tuşu bir üst seviyeye döner.
-
-```
-/memleket
-/memleket/karadeniz
-/memleket/karadeniz/rize
-/cihan/afrika/kenya
+api/fersah.ts           Vercel işlevi
+server/                 Sunucu mantığı (saf işlevler), depolama, testler, duman testi
+scripts/build-geo.mjs   Natural Earth → TopoJSON, başkentler, bayraklar, ilçeler, karayolu mesafeleri
+scripts/ses/            Küçük Seyyah ses paketi üreticisi (geliştirici aracı)
+public/geo/             turkiye.topo.json, dunya.topo.json
+public/flags/           Ülke bayrakları (SVG)
+public/ses/             Küçük Seyyah ses kayıtları (MP3, ~870 KB; ilk kullanımda önbelleğe alınır)
+src/map-engine/         Oyundan bağımsız harita motoru
+src/data/               İl–bölge–plaka tablosu, kıtalar, atlas (Web Worker), bilgi kartları, generated/
+src/quiz-engine/        Soru motoru: bul, neresi, yakın atış, plaka, bayrak, Memleket Testi, Günün Haritası
+src/scoring/            Puanlama, mesafe (km + fersah), paylaşım metni
+src/progress/           Leitner kutuları, seri, ilerleme
+src/account/            Giriş, eşitleme, kutlama mesajları, sıralama arayüzü
+src/kids/               Küçük Seyyah
+src/ui/                 Ortak arayüz (logo, sürüm rozeti, ...)
+src/i18n/tr.ts          Arayüz metinleri
+tests/                  Playwright testleri
 ```
 
 ## Veri kaynakları ve lisanslar
 
 | Veri | Kaynak | Lisans |
 |---|---|---|
-| Dünya ülke sınırları | [Natural Earth](https://www.naturalearthdata.com/) 1:10m Admin 0 – **Türkiye bakış açısı** (`ne_10m_admin_0_countries_tur`), sürüm 5.2.0 | Kamu malı (public domain). Atıf gerekmez, ticari kullanım serbest. |
-| Türkiye il sınırları | Natural Earth 1:10m Admin 1 (`ne_10m_admin_1_states_provinces`, Türkiye süzülmüş), sürüm 5.2.0 | Kamu malı |
-| Ülke adlarının Türkçesi, nüfus tahmini | Natural Earth öznitelikleri (`NAME_TR`, `POP_EST`) | Kamu malı |
-| Coğrafi bölge – il eşlemesi | 1941 Birinci Coğrafya Kongresi sınıflandırması, elle girildi (`src/data/memleket.ts`) | Kendi verimiz |
-| Yazı tipi | [Manrope](https://github.com/sharanda/manrope) (`@fontsource-variable/manrope`) | SIL Open Font License 1.1 |
-| Arayüz ve Çocuk Köşesi simgeleri | Projede elle çizildi (telifli karakter yok) | Kendi verimiz |
-| Başkentler | Natural Earth 1:10m Populated Places (`FEATURECLA = "Admin-0 capital"`, Türkçe ad `NAME_TR`) | Kamu malı |
-| Bilgi kartları | Elle yazıldı; her kartta kaynak sayfa (Türkçe Vikipedi) bağlantısı var | Metinler kendi verimiz |
+| Dünya ülke sınırları | [Natural Earth](https://www.naturalearthdata.com/) 1:10m Admin 0 – Türkiye bakış açısı, 5.2.0 | Kamu malı |
+| Türkiye il sınırları, başkentler, Türkçe ülke adları | Natural Earth 1:10m | Kamu malı |
+| Coğrafi bölge – il eşlemesi | 1941 Birinci Coğrafya Kongresi, elle girildi | Kendi verimiz |
+| Bayraklar | [flag-icons](https://github.com/lipis/flag-icons) | MIT |
+| İlçeler ve iller arası karayolu mesafeleri | [turkey-neighbourhoods](https://github.com/muratgozel/turkey-neighbourhoods) 4.0.3 (Murat Gözel) | MIT |
+| Yazı tipleri | Poppins, Inter (`@fontsource`) | SIL Open Font License 1.1 |
+| Küçük Seyyah sesi | Piper Türkçe "fahrettin" sesi ([NabuCasa voice-datasets](https://github.com/NabuCasa/voice-datasets), CC0), [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) ile okutuldu, WORLD vokoderiyle (pyworld, MIT) çocuk sesine dönüştürüldü | CC0 |
+| Simgeler, logo | Projede çizildi (Fersah kimlik rehberi) | Kendi verimiz |
+| Bilgi kartları | Elle yazıldı; her kartta Türkçe Vikipedi kaynak bağlantısı | Metinler kendi verimiz |
 
-Notlar:
+Notlar: GADM kullanılmaz (ticari kullanımı yasaklar). KKTC haritada seçilebilir ama "ülke" olarak sorulmaz.
+Antarktika görünür, oynanamaz. 1 fersah ≈ 5,685 km.
 
-- Planda il ve ilçe sınırları için geoBoundaries (CC BY 4.0) önerilmişti. İller için kamu malı ve daha sade olduğu
-  için Natural Earth Admin 1 kullanıldı. **İlçe seviyesi** geldiğinde geoBoundaries ADM2 (CC BY 4.0, atıf
-  zorunlu) eklenecek; atıf metni buraya yazılacak.
-- **GADM kullanılmaz**: ticari kullanımı yasaklar.
-- Natural Earth Türkiye bakış açısı sürümünde KKTC ayrı bir alan olarak yer alır. KKTC haritada seçilebilir
-  ama oyunda "ülke" olarak sorulmaz. Antarktika görünür, oynanamaz.
-- Etiket noktaları: iller ve etiket noktası denize düşen ülkeler için
-  [polylabel](https://github.com/mapbox/polylabel) (ISC) ile hesaplanır (yalnızca derleme sırasında).
+### Ses paketini yeniden üretme
 
-## Aşama planı
+```bash
+node scripts/ses/cumleler.mjs /tmp/cumleler.json
+python3 scripts/ses/uret.py <vits-piper-tr_TR-fahrettin-medium klasörü> /tmp/cumleler.json .
+```
 
-- [x] **Aşama 0:** Harita etkileşimi demosu
-- [x] **Aşama 1:** Tek oyunculu oyun: 5 mod, öğretici yapı, Leitner tekrarı, istatistikler, Günün Haritası (yerel), Çocuk Köşesi, çevrimdışı PWA
-- [ ] **Aşama 2:** Supabase: giriş, iki ayrı günlük sıralama, sunucuda puanlama ve hile koruması, KVKK
-- [ ] **Aşama 3:** Canlı düello (Realtime), lig, rozetler, ilçe ve yeni katmanlar
+Gerekenler: `pip install sherpa-onnx==1.12.40 pyworld soundfile`, ffmpeg. Model:
+`github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-tr_TR-fahrettin-medium.tar.bz2`.
+Okunan her cümle `src/kids/phrases.ts`'tedir; `phrases.test.ts` kaydı eksik cümle bırakmaz. Pakette olmayan bir
+cümle olursa tarayıcının konuşma özelliğine düşülür. Gerçek bir çocuk seslendirmeni kaydı gelirse aynı dosya
+adlarıyla `public/ses/` altına konması yeterlidir (`src/kids/ses.json` cümle → dosya eşlemesi).
 
 ## Bilgi kartlarının doğrulama durumu
 
-`src/data/facts/*.json` içindeki 81 il ve 43 ülke kartı genel bilinen, tek cümlelik bilgilerden oluşur ve
-her birinde kaynak bağlantısı vardır. Her kartta `dogrulandi` alanı var. Geliştirme ortamından Vikipedi'ye
-erişilemediği için kartlar henüz kaynağıyla tek tek karşılaştırılmadı (`dogrulandi: false`). Doğrulanan kart
-`true` yapılmalı; doğrulanamayan kart boşaltılmalı.
+`src/data/facts/*.json` içindeki 81 il ve 43 ülke kartında `dogrulandi` alanı var. Doğrulanan kart `true`
+yapılır; kaynağında bulunamayan kart düzeltilir ya da boşaltılır. Ayrıntı: bkz. aşağıdaki "Son doğrulama".
 
-## Aşama 1 adresleri
+## Ölçümler
 
-```
-/oyna                          Oyna merkezi (Günün Haritası, hızlı başla, Çocuk Köşesi)
-/oyun/memleket/bul/karadeniz   Oyun: atlas / mod (bul, neresi, yakin, siluet, hepsi) / kapsam (tum ya da bölge/kıta)
-/gunluk/memleket               Günün Haritası (Memleket: Türkiye saati, Cihan: UTC)
-/istatistik                    Kişisel istatistikler
-/cocuk                         Çocuk Köşesi
-```
-
-## Aşama 1 ölçümleri
-
-- Lighthouse (mobil, `vite preview`): tüm sayfalarda performans 95–96, erişilebilirlik 100, en iyi uygulamalar 100.
-- Harita verisi bir Web Worker'da işlenir (dünya haritası için ana iş parçacığı engeli 810 ms → 10–20 ms).
-- 81 ilin ve tüm ülkelerin gerçek işaretçiyle seçilebildiği Playwright ile test edildi.
-- Çevrimdışı: bir kez açıldıktan sonra ağ kapalıyken oyun açılıyor (Playwright testi).
-
-## Aşama 0 ölçümleri
-
-Kamera geçişlerinde kare hızı (`scripts/dev/fps.mjs`, Pixel 7 taklidi, başsız Chromium, GPU'suz yazılımsal çizim):
-
-| Geçiş | Normal CPU | 4× yavaş CPU |
-|---|---|---|
-| Türkiye → bölge → il | 60 fps | 54–60 fps |
-| Dünya → Afrika → Kenya | 60 fps | 53–56 fps |
-
-Performans kararları: sönükleştirme tek bir "perde" katmanıyla yapılır (250 ayrı geçiş yerine),
-`opacity` yerine `fill-opacity`, kamera uçarken etiket yerleşimi durur, `will-change` ölçülerek kaldırıldı.
+- Lighthouse (mobil): performans 95–96, erişilebilirlik 100, en iyi uygulamalar 100 (Aşama 1).
+- Harita verisi Web Worker'da işlenir; kamera geçişleri 4× yavaş CPU'da 53–60 fps.
+- 81 ilin ve tüm ülkelerin gerçek işaretçiyle seçilebildiği, çevrimdışı açılış ve hesap akışı Playwright ile test edilir.

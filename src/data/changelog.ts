@@ -7,6 +7,15 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.2.0',
+    date: '2026-11-22',
+    notes: [
+      'Küçük Seyyah: robot sesi yerine önceden kaydedilmiş, çocuksu ses paketi (çevrimdışı da çalışır)',
+      'Puanlar sunucuda oyuncu başına ayrı tutuluyor: aynı anda oynayanların puanı kaybolmaz',
+      'Sıralama ve "şu an keşifte" sayısı daha hızlı güncelleniyor',
+    ],
+  },
+  {
     version: '1.1.0',
     date: '2026-11-22',
     notes: [
@@ -16,7 +25,6 @@ export const CHANGELOG: Release[] = [
       'Siluet yerine Plaka (Memleket) ve Bayrak (Cihan) soruları',
       'İlçeler ve metin tabanlı Memleket Testi',
       'Kullanıcı adı, sunucuda saklanan puanlar, sıralamalar ve anlık seyyah sayısı',
-      'Küçük Seyyah: doğal ses paketi',
     ],
   },
   {
