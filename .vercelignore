@@ -1,0 +1,7 @@
+node_modules
+dist
+dist-preview
+data-src
+test-results
+playwright-report
+scripts/dev

@@ -8,6 +8,8 @@ Türkiye ve dünya harita bilgisini geliştiren, telefonda uygulama gibi çalı�
 Şu an **Aşama 1** tamam: seviyeli harita, beş oyun modu, Günün Haritası (yerel), öğretici yapı,
 istatistikler, öğrenme haritası, Çocuk Köşesi ve çevrimdışı çalışan PWA. Sunucu yok; ilerleme yalnızca cihazda.
 
+**Canlı:** https://fersah.vercel.app · **Kod:** https://github.com/tahsinoglu/fersah
+
 ## Kurulum
 
 ```bash
@@ -24,6 +26,11 @@ Diğer komutlar:
 | `npm test` | Birim testleri (Vitest) |
 | `npm run e2e` | Tarayıcı testleri (Playwright; telefon + masaüstü) |
 | `npm run geo` | Harita verisini indirip `public/geo/*.topo.json` dosyalarını yeniden üretir |
+
+### Yayın
+
+Vercel projesi: `fersah` (Vite, `npm run build`, çıktı `dist`). `vercel.json` tüm adresleri `index.html`'e yönlendirir
+(seviyeli adresler doğrudan açılabilsin diye) ve servis çalışanını önbelleğe almaz. Elle yayın: `scripts/deploy.sh`.
 
 ### Telefona ekleme
 
