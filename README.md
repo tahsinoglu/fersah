@@ -30,7 +30,8 @@ Diğer komutlar:
 ### Yayın
 
 Vercel projesi: `fersah` (Vite, `npm run build`, çıktı `dist`). `vercel.json` tüm adresleri `index.html`'e yönlendirir
-(seviyeli adresler doğrudan açılabilsin diye) ve servis çalışanını önbelleğe almaz. Elle yayın: `scripts/deploy.sh`.
+(seviyeli adresler doğrudan açılabilsin diye) ve servis çalışanını önbelleğe almaz. Vercel GitHub deposuna bağlı: `main`'e her gönderim otomatik olarak
+üretime yayınlanır, diğer dallar önizleme adresi alır. Gerekirse elle yayın: `scripts/deploy.sh`.
 
 ### Telefona ekleme
 
