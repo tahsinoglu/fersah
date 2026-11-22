@@ -27,22 +27,22 @@
   "06": {
     "metin": "13 Ekim 1923'te Türkiye'nin başkenti oldu. Anıtkabir bu ildedir.",
     "kaynak": "https://tr.wikipedia.org/wiki/Ankara",
-    "dogrulandi": false
+    "dogrulandi": true
   },
   "07": {
-    "metin": "Aspendos Antik Tiyatrosu, en iyi korunmuş Roma tiyatrolarından biridir.",
+    "metin": "Aspendos Antik Tiyatrosu, Anadolu'da sahnesiyle birlikte sağlam kalmış en eski Roma tiyatrosudur.",
     "kaynak": "https://tr.wikipedia.org/wiki/Aspendos",
-    "dogrulandi": false
+    "dogrulandi": true
   },
   "08": {
-    "metin": "Çoruh Nehri üzerindeki Deriner Barajı, Türkiye'nin en yüksek barajıdır.",
+    "metin": "Çoruh Nehri üzerindeki Deriner Barajı, 249 metrelik gövdesiyle Türkiye'nin en yüksek ikinci barajıdır.",
     "kaynak": "https://tr.wikipedia.org/wiki/Deriner_Barajı",
-    "dogrulandi": false
+    "dogrulandi": true
   },
   "09": {
-    "metin": "Türkiye'nin en önemli incir üretim merkezidir. Afrodisias antik kenti UNESCO Dünya Mirası'dır.",
+    "metin": "Türkiye'de incir üretiminde birinci ildir. Antik Afrodisias kenti bu ilin sınırları içindedir.",
     "kaynak": "https://tr.wikipedia.org/wiki/Aydın",
-    "dogrulandi": false
+    "dogrulandi": true
   },
   "10": {
     "metin": "Ayvalık ve Edremit Körfezi kıyıları zeytin ve zeytinyağıyla ünlüdür.",

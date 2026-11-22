@@ -111,8 +111,11 @@ adlarıyla `public/ses/` altına konması yeterlidir (`src/kids/ses.json` cümle
 yapılır; kaynağında bulunamayan kart düzeltilir ya da boşaltılır.
 
 Son doğrulama (2026-11-22): geliştirme ortamının çıkış adresi Vikipedi'de paylaşıldığı için istekler sürekli hız
-sınırına (429) takıldı; gece boyunca yalnızca 3 makale indirilebildi. Adana, Afyonkarahisar ve Ağrı kartları kaynak
-metinle karşılaştırılıp doğrulandı (`true`); kalan 121 kart henüz doğrulanmadı (`false`).
+sınırına (429) takıldı; gece boyunca yalnızca 8 makale indirilebildi. Adana, Afyonkarahisar, Ağrı, Ankara, Antalya
+(Aspendos), Artvin (Deriner) ve Aydın kartları kaynakla karşılaştırıldı ve doğrulandı (`true`). Bunlardan üçü kaynağa göre
+düzeltildi: Deriner Türkiye'nin en yüksek **ikinci** barajı (249 m); Aydın kartındaki UNESCO bilgisi kaynakta yoktu,
+çıkarıldı; Aspendos cümlesi kaynaktaki ifadeye yaklaştırıldı. Balıkesir kartı kaynakta tam desteklenmediği için
+`false` kaldı. Kalan 116 kart henüz doğrulanmadı.
 
 ## Ölçümler
 
