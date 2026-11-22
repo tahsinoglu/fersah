@@ -1,16 +1,22 @@
-import { Fragment } from 'react';
+import { Fragment, useEffect, useRef } from 'react';
 import { t } from '../i18n';
 import type { Atlas, Selection } from '../map-engine/types';
 import { chainOf } from '../lib/routes';
 import { IconChevron } from './icons';
 
-export function Breadcrumb({ atlas, selection, onGo }: { atlas: Atlas; selection: Selection; onGo: (s: Selection) => void }) {
-  const chain = chainOf(selection);
-  const name = (s: Selection) =>
-    s.unitId ? atlas.unitById.get(s.unitId)?.name : s.groupId ? atlas.groupById.get(s.groupId)?.name : atlas.rootName;
+export function Breadcrumb({ atlas, selection, onGo, extra }: { atlas: Atlas; selection: Selection; onGo: (s: Selection) => void; extra?: string }) {
+  const chain: (Selection | string)[] = [...chainOf(selection), ...(extra ? [extra] : [])];
+  const listRef = useRef<HTMLOListElement>(null);
+  // En derin seviye her zaman görünsün
+  useEffect(() => {
+    const el = listRef.current;
+    if (el) el.scrollLeft = el.scrollWidth;
+  }, [chain.length, extra]);
+  const name = (s: Selection | string) =>
+    typeof s === 'string' ? s : s.unitId ? atlas.unitById.get(s.unitId)?.name : s.groupId ? atlas.groupById.get(s.groupId)?.name : atlas.rootName;
   return (
     <nav aria-label={t.map.breadcrumb} className="glass min-w-0 max-w-full shrink rounded-2xl">
-      <ol className="no-scrollbar flex h-12 items-center overflow-x-auto px-1.5">
+      <ol ref={listRef} className="no-scrollbar flex h-12 items-center overflow-x-auto px-1.5">
         {chain.map((s, i) => {
           const last = i === chain.length - 1;
           return (
@@ -25,7 +31,7 @@ export function Breadcrumb({ atlas, selection, onGo }: { atlas: Atlas; selection
                   <button
                     type="button"
                     className="pressable h-10 rounded-xl px-2.5 text-[15px] font-semibold text-[var(--ink-2)] hover:bg-[var(--accent-tint)]"
-                    onClick={() => onGo(s)}
+                    onClick={() => typeof s !== 'string' && onGo(s)}
                   >
                     {name(s)}
                   </button>

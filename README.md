@@ -58,9 +58,10 @@ canlı API'de giriş → tur → sıralama → tekrar giriş → silme akışın
 ```
 api/fersah.ts           Vercel işlevi
 server/                 Sunucu mantığı (saf işlevler), depolama, testler, duman testi
-scripts/build-geo.mjs   Natural Earth → TopoJSON, başkentler, bayraklar, ilçeler, karayolu mesafeleri
+scripts/build-geo.mjs   Natural Earth → TopoJSON, başkentler, bayraklar, ilçe listesi, karayolu mesafeleri
+scripts/build-ilce.mjs  İlçe sınırları (OSM) → il eşlemesi, iller = ilçelerin birleşimi
 scripts/ses/            Küçük Seyyah ses paketi üreticisi (geliştirici aracı)
-public/geo/             turkiye.topo.json, dunya.topo.json
+public/geo/             turkiye.topo.json (iller), ilceler.topo.json (ilçeler; bir ile girince yüklenir), dunya.topo.json
 public/flags/           Ülke bayrakları (SVG)
 public/ses/             Küçük Seyyah ses kayıtları (MP3, ~870 KB; ilk kullanımda önbelleğe alınır)
 src/map-engine/         Oyundan bağımsız harita motoru
@@ -80,7 +81,8 @@ tests/                  Playwright testleri
 | Veri | Kaynak | Lisans |
 |---|---|---|
 | Dünya ülke sınırları | [Natural Earth](https://www.naturalearthdata.com/) 1:10m Admin 0 – Türkiye bakış açısı, 5.2.0 | Kamu malı |
-| Türkiye il sınırları, başkentler, Türkçe ülke adları | Natural Earth 1:10m | Kamu malı |
+| Türkiye il ve ilçe sınırları | [geoBoundaries](https://www.geoboundaries.org/) TUR ADM2 ← © [OpenStreetMap katkıcıları](https://www.openstreetmap.org/copyright). İl sınırları ilçelerin birleşimidir (`scripts/build-ilce.mjs`) | [ODbL 1.0](https://opendatacommons.org/licenses/odbl/). Atıf zorunlu (uygulamada ilçe listesinin altında); `public/geo/turkiye.topo.json` ve `ilceler.topo.json` türetilmiş veritabanı olarak ODbL ile paylaşılır |
+| Başkentler, Türkçe ülke adları, il plakası eşlemesi için yardımcı il sınırları | Natural Earth 1:10m | Kamu malı |
 | Coğrafi bölge – il eşlemesi | 1941 Birinci Coğrafya Kongresi, elle girildi | Kendi verimiz |
 | Bayraklar | [flag-icons](https://github.com/lipis/flag-icons) | MIT |
 | İlçeler ve iller arası karayolu mesafeleri | [turkey-neighbourhoods](https://github.com/muratgozel/turkey-neighbourhoods) 4.0.3 (Murat Gözel) | MIT |

@@ -7,6 +7,14 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.3.0',
+    date: '2026-11-22',
+    notes: [
+      'Haritada ilçeler: bir ile girince 973 ilçenin sınırları ve adları görünür, ilçeye dokununca vurgulanır',
+      'İl sınırları daha ayrıntılı ve doğru (OpenStreetMap verisinden)',
+    ],
+  },
+  {
     version: '1.2.0',
     date: '2026-11-22',
     notes: [

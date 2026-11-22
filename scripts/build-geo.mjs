@@ -158,3 +158,5 @@ for (const [a, row] of Object.entries(distRaw)) {
 writeFileSync(join(root, 'src', 'data', 'generated', 'karayolu.json'), JSON.stringify(mesafe));
 console.log('ilçe', Object.values(ilceler).reduce((n, l) => n + l.length, 0), 'mesafe', Object.keys(mesafe).length);
 console.log('tamam');
+// İlçe sınırları ve onlardan türetilen il sınırları (OpenStreetMap / geoBoundaries, ODbL)
+await import('./build-ilce.mjs');

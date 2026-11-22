@@ -34,9 +34,12 @@ interface Content {
   childLabel?: string;
   /** İlin ilçeleri */
   ilceler?: string[];
+  ilId?: string;
+  /** Seçili ilçe (kimlik "il:ad") */
+  subSel?: string | null;
 }
 
-function contentOf(id: AtlasId, atlas: Atlas, sel: Selection, progress: Progress): Content | null {
+function contentOf(id: AtlasId, atlas: Atlas, sel: Selection, progress: Progress, sub: string | null = null): Content | null {
   const g = sel.groupId ? atlas.groupById.get(sel.groupId) : undefined;
   if (!g) return null;
   const u = sel.unitId ? atlas.unitById.get(sel.unitId) : undefined;
@@ -56,6 +59,22 @@ function contentOf(id: AtlasId, atlas: Atlas, sel: Selection, progress: Progress
     };
   }
   const isCountry = mem || !!u.extra.ulke;
+  const subName = mem && sub?.startsWith(`${u.id}:`) ? sub.slice(u.id.length + 1) : null;
+  if (subName) {
+    return {
+      eyebrow: `İlçe · ${u.name}`,
+      title: subName === 'Merkez' ? `${u.name} Merkez` : subName,
+      sub: `${u.name} ili · ${g.name} ${t.panel.regionWord}`,
+      playLabel: `${g.name} bölgesini oyna`,
+      playable: true,
+      scope: g.id,
+      mastery: masteryPercent(progress, id, [u.id]),
+      ilceler: (ilcelerJson as Record<string, string[]>)[u.id],
+      ilId: u.id,
+      subSel: sub,
+      children: [],
+    };
+  }
   return {
     eyebrow: `${t.search.kind[`unit_${id}`]} · ${g.name}`,
     title: u.name,
@@ -68,6 +87,7 @@ function contentOf(id: AtlasId, atlas: Atlas, sel: Selection, progress: Progress
     fact: factOf(id, u.id),
     capitals: !mem && isCountry ? capitalsOf(u.id) : undefined,
     ilceler: mem ? (ilcelerJson as Record<string, string[]>)[u.id] : undefined,
+    ilId: u.id,
     children: [],
   };
 }
@@ -86,7 +106,7 @@ function MasteryRing({ value }: { value: number }) {
   );
 }
 
-function Body({ c, onClose, onPick, onPlay, peek }: { c: Content; onClose: () => void; onPick: (u: MapUnit) => void; onPlay: (scope: string) => void; peek?: boolean }) {
+function Body({ c, onClose, onPick, onPlay, onSub, peek }: { c: Content; onClose: () => void; onPick: (u: MapUnit) => void; onPlay: (scope: string) => void; onSub?: (id: string | null) => void; peek?: boolean }) {
   return (
     <>
       <div className={peek ? 'flex flex-col' : ''} style={peek ? { minHeight: SHEET_PEEK - 28 } : undefined}>
@@ -141,12 +161,30 @@ function Body({ c, onClose, onPick, onPlay, peek }: { c: Content; onClose: () =>
         <div className="mt-5">
           <h3 className="mb-2 text-[12.5px] font-bold uppercase tracking-[0.08em] text-[var(--ink-3)]">İlçeleri ({c.ilceler.length})</h3>
           <ul className="flex flex-wrap gap-1.5">
-            {c.ilceler.map((n) => (
-              <li key={n} className="rounded-lg border border-[var(--hairline)] px-2.5 py-1 text-[14px] text-[var(--ink-2)]">
-                {n}
-              </li>
-            ))}
+            {c.ilceler.map((n) => {
+              const id = `${c.ilId}:${n}`;
+              const on = c.subSel === id;
+              return (
+                <li key={n}>
+                  <button
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => onSub?.(on ? null : id)}
+                    className={`pressable rounded-lg border px-2.5 py-1 text-[14px] ${on ? 'border-[var(--accent)] bg-[var(--accent)] font-bold text-[var(--on-accent)]' : 'border-[var(--hairline)] text-[var(--ink-2)] hover:bg-[var(--accent-tint)]'}`}
+                  >
+                    {n}
+                  </button>
+                </li>
+              );
+            })}
           </ul>
+          <p className="mt-2 text-[11.5px] font-medium text-[var(--ink-3)]">
+            İlçe sınırları ©{' '}
+            <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer" className="underline">
+              OpenStreetMap katkıcıları
+            </a>{' '}
+            (ODbL), geoBoundaries
+          </p>
         </div>
       )}
       {c.children.length > 0 && (
@@ -178,19 +216,21 @@ interface PanelProps {
   onClose: () => void;
   onGo: (s: Selection) => void;
   onPlay: (scope: string) => void;
+  sub?: string | null;
+  onSub?: (id: string | null) => void;
 }
 
 /** Son geçerli içeriği tut ki kapanırken boş kalmasın */
-function useStickyContent(atlasId: AtlasId, atlas: Atlas, selection: Selection) {
+function useStickyContent(atlasId: AtlasId, atlas: Atlas, selection: Selection, sub: string | null = null) {
   const progress = useProgress();
-  const c = contentOf(atlasId, atlas, selection, progress);
+  const c = contentOf(atlasId, atlas, selection, progress, sub);
   const last = useRef<Content | null>(c);
   if (c) last.current = c;
   return { open: !!c, content: last.current };
 }
 
-export function SidePanel({ atlasId, atlas, selection, onClose, onGo, onPlay }: PanelProps) {
-  const { open, content } = useStickyContent(atlasId, atlas, selection);
+export function SidePanel({ atlasId, atlas, selection, onClose, onGo, onPlay, sub, onSub }: PanelProps) {
+  const { open, content } = useStickyContent(atlasId, atlas, selection, sub);
   return (
     <aside
       aria-label={content?.title}
@@ -200,15 +240,15 @@ export function SidePanel({ atlasId, atlas, selection, onClose, onGo, onPlay }: 
       style={{ width: SIDE_PANEL_W, transform: open ? 'none' : `translateX(${SIDE_PANEL_W + 32}px)`, opacity: open ? 1 : 0 }}
     >
       <div className="no-scrollbar flex-1 overflow-y-auto p-5">
-        {content && <Body c={content} onClose={onClose} onPlay={onPlay} onPick={(u) => onGo({ groupId: u.groupId, unitId: u.id })} />}
+        {content && <Body c={content} onClose={onClose} onPlay={onPlay} onSub={onSub} onPick={(u) => onGo({ groupId: u.groupId, unitId: u.id })} />}
       </div>
     </aside>
   );
 }
 
 /** Mobil: alttan yukarı çekilen sayfa. Aşağı çekip bırakınca bir üst seviyeye çıkar. */
-export function BottomSheet({ atlasId, atlas, selection, onClose, onGo, onPlay, bottom }: PanelProps & { bottom: number }) {
-  const { open, content } = useStickyContent(atlasId, atlas, selection);
+export function BottomSheet({ atlasId, atlas, selection, onClose, onGo, onPlay, bottom, sub, onSub }: PanelProps & { bottom: number }) {
+  const { open, content } = useStickyContent(atlasId, atlas, selection, sub);
   const [expanded, setExpanded] = useState(false);
   const [drag, setDrag] = useState<number | null>(null);
   const start = useRef<{ y: number; t: number } | null>(null);
@@ -277,7 +317,7 @@ export function BottomSheet({ atlasId, atlas, selection, onClose, onGo, onPlay, 
         <span className="h-1.5 w-10 rounded-full bg-[var(--ink-3)] opacity-40" />
       </button>
       <div ref={scrollRef} className={`no-scrollbar flex-1 px-5 pb-5 ${expanded ? 'overflow-y-auto' : 'overflow-hidden'}`} style={{ touchAction: expanded ? 'pan-y' : 'none' }}>
-        {content && <Body c={content} peek onClose={onClose} onPlay={onPlay} onPick={(u) => onGo({ groupId: u.groupId, unitId: u.id })} />}
+        {content && <Body c={content} peek onClose={onClose} onPlay={onPlay} onSub={onSub} onPick={(u) => onGo({ groupId: u.groupId, unitId: u.id })} />}
       </div>
     </section>
     </div>

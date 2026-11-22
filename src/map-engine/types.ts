@@ -1,4 +1,5 @@
 import type { Feature, Geometry } from 'geojson';
+import type { GeoPermissibleObjects as GeoPermissibleObject } from 'd3-geo';
 
 export type Box = [[number, number], [number, number]];
 export type Pt = [number, number];
@@ -60,6 +61,18 @@ export interface Atlas {
   project: (lonlat: Pt) => Pt | null;
   /** projeksiyon koordinatı → [boylam, enlem] */
   invert: (p: Pt) => Pt | null;
+  /** GeoJSON → SVG yolu ve kutusu (projeksiyon koordinatlarında) */
+  pathOf: (g: GeoPermissibleObject) => string;
+  boundsOf: (g: GeoPermissibleObject) => Box;
+}
+
+/** Bir birimin içindeki alt parça (ilin ilçesi): yalnızca o birim seçiliyken çizilir */
+export interface SubUnit {
+  id: string;
+  name: string;
+  d: string;
+  bbox: Box;
+  label: Pt;
 }
 
 /** Haritadaki seçim yolu: kök → grup → birim */

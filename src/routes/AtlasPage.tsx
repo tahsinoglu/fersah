@@ -21,6 +21,8 @@ import { ModeSheet } from '../ui/ModeSheet';
 import { masteryOf } from '../progress/leitner';
 import { cardKey, useProgress } from '../progress/store';
 import { isQuizzable } from '../game/content';
+import { ilceLayer, loadIlceTopo } from '../data/ilceler';
+import type { Topology } from 'topojson-specification';
 
 const TAB_H = 64;
 const FLOAT_ROW = 60;
@@ -96,6 +98,17 @@ function AtlasScreen({ atlasId, atlas }: { atlasId: AtlasId; atlas: Atlas }) {
     });
   const progress = useProgress();
 
+  // İlçeler: bir ile girilince indirilir; ilçeye dokununca vurgulanır
+  const [ilceTopo, setIlceTopo] = useState<Topology | null>(null);
+  const [sub, setSub] = useState<string | null>(null);
+  const ilId = atlasId === 'memleket' ? selection.unitId : undefined;
+  useEffect(() => {
+    setSub(null);
+    if (ilId) loadIlceTopo().then(setIlceTopo).catch(() => {});
+  }, [ilId]);
+  const layer = useMemo(() => (ilId && ilceTopo ? ilceLayer(atlas, ilceTopo, ilId) : null), [atlas, ilceTopo, ilId]);
+  const upOrSub = useCallback(() => (sub ? setSub(null) : up()), [sub, up]);
+
   // Öğrenme haritası: bilinme düzeyine göre boya. Seviyeli: kökte bölge ortalaması, bölgede iller.
   const { paint, groupPaint } = useMemo(() => {
     if (!learn) return { paint: undefined, groupPaint: undefined };
@@ -128,11 +141,11 @@ function AtlasScreen({ atlasId, atlas }: { atlasId: AtlasId; atlas: Atlas }) {
       if (e.key !== 'Escape' || e.defaultPrevented || playScope) return;
       const tag = (e.target as HTMLElement | null)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-      up();
+      upOrSub();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [up, playScope]);
+  }, [upOrSub, playScope]);
 
   const hasPanel = !!selection.groupId;
   const tabH = TAB_H + safe.bottom;
@@ -170,6 +183,10 @@ function AtlasScreen({ atlasId, atlas }: { atlasId: AtlasId; atlas: Atlas }) {
         onUp={up}
         paint={paint}
         groupPaint={groupPaint}
+        subunits={layer?.subs}
+        subBorders={layer?.borders}
+        subSelected={sub}
+        onSubSelect={(id) => setSub((cur) => (cur === id ? null : id))}
         reducedMotion={reduced}
         ariaLabel={`${atlas.rootName}. ${t.map.ariaLabel}`}
       />
@@ -206,7 +223,7 @@ function AtlasScreen({ atlasId, atlas }: { atlasId: AtlasId; atlas: Atlas }) {
         style={{ bottom: floatBottom, right: desktop && hasPanel ? SIDE_PANEL_W + 32 : 0 }}
       >
         <div className="pointer-events-auto flex min-w-0 items-center gap-2">
-          <Breadcrumb atlas={atlas} selection={selection} onGo={go} />
+          <Breadcrumb atlas={atlas} selection={selection} onGo={(s) => (setSub(null), go(s))} extra={sub ? sub.slice(sub.indexOf(':') + 1) : undefined} />
           {!selection.groupId && (
             <button
               type="button"
@@ -243,10 +260,10 @@ function AtlasScreen({ atlasId, atlas }: { atlasId: AtlasId; atlas: Atlas }) {
       </div>
 
       {desktop ? (
-        <SidePanel atlasId={atlasId} atlas={atlas} selection={selection} onClose={up} onGo={go} onPlay={setPlayScope} />
+        <SidePanel atlasId={atlasId} atlas={atlas} selection={selection} onClose={upOrSub} onGo={go} onPlay={setPlayScope} sub={sub} onSub={setSub} />
       ) : (
         <>
-          <BottomSheet atlasId={atlasId} atlas={atlas} selection={selection} onClose={up} onGo={go} onPlay={setPlayScope} bottom={tabH} />
+          <BottomSheet atlasId={atlasId} atlas={atlas} selection={selection} onClose={upOrSub} onGo={go} onPlay={setPlayScope} bottom={tabH} sub={sub} onSub={setSub} />
           <div className="absolute inset-x-0 bottom-0 z-30">
             <TabBar current={atlasId} />
           </div>

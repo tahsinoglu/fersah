@@ -75,7 +75,7 @@ function loadOnMainThread(id: AtlasId): Promise<Atlas> {
 function loadInWorker(id: AtlasId): Promise<Atlas> {
   return new Promise((resolve, reject) => {
     const w = new Worker(new URL('./atlas.worker.ts', import.meta.url), { type: 'module' });
-    w.onmessage = (e: MessageEvent<{ ok: true; atlas: Omit<Atlas, 'project' | 'invert'> } | { ok: false; error: string }>) => {
+    w.onmessage = (e: MessageEvent<{ ok: true; atlas: Omit<Atlas, 'project' | 'invert' | 'pathOf' | 'boundsOf'> } | { ok: false; error: string }>) => {
       w.terminate();
       if (e.data.ok) resolve(hydrateAtlas(e.data.atlas, CONFIGS[id]));
       else reject(new Error(e.data.error));

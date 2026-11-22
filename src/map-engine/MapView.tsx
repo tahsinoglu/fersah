@@ -15,7 +15,7 @@ import 'd3-transition';
 import { easeCubicInOut } from 'd3-ease';
 import { zoom as d3zoom, zoomIdentity, type ZoomBehavior, type ZoomTransform } from 'd3-zoom';
 import { fitTransform, pickDirectional, type Insets } from './camera';
-import { depthOf, type Atlas, type Box, type MapGroup, type MapUnit, type Pt, type Selection } from './types';
+import { depthOf, type Atlas, type Box, type MapGroup, type MapUnit, type Pt, type Selection, type SubUnit } from './types';
 import './map.css';
 
 export interface MapViewHandle {
@@ -67,6 +67,12 @@ export interface MapViewProps {
   line?: MapLine | null;
   /** Haritaya iliştirilen dokunulabilir öğeler (Çocuk Köşesi simgeleri) */
   overlays?: { id: string; at: Pt; content: ReactNode }[];
+  /** Seçili birimin alt parçaları (ilin ilçeleri) ve aralarındaki sınırlar */
+  subunits?: SubUnit[];
+  subBorders?: string;
+  /** Seçili alt parça */
+  subSelected?: string | null;
+  onSubSelect?: (id: string | null) => void;
   /** Etiketler (oyun sırasında kapatılır) */
   labels?: boolean;
   reducedMotion?: boolean;
@@ -121,7 +127,7 @@ interface LabelSpec {
   p: Pt;
   w: number;
   h: number;
-  kind: 'group' | 'unit' | 'minor';
+  kind: 'group' | 'unit' | 'minor' | 'sub';
   always: boolean;
   selected: boolean;
 }
@@ -130,6 +136,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
   {
     atlas, selection, insets, onSelect, onUp, labels = true, reducedMotion = false, ariaLabel, className,
     interaction = 'explore', pickable, pickGroups = false, slow = false, onPick, paint, groupPaint, highlight, marks, line, overlays,
+    subunits, subBorders, subSelected = null, onSubSelect,
   },
   ref,
 ) {
@@ -156,8 +163,8 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
   const flyingRef = useRef(false);
 
   // Güncel değerleri olay işleyicilerinde kullanmak için
-  const live = useRef({ atlas, selection, onSelect, onUp, reducedMotion, interaction, pickable, pickGroups, slow, onPick });
-  live.current = { atlas, selection, onSelect, onUp, reducedMotion, interaction, pickable, pickGroups, slow, onPick };
+  const live = useRef({ atlas, selection, onSelect, onUp, reducedMotion, interaction, pickable, pickGroups, slow, onPick, onSubSelect });
+  live.current = { atlas, selection, onSelect, onUp, reducedMotion, interaction, pickable, pickGroups, slow, onPick, onSubSelect };
 
   const depth = depthOf(selection);
   const focusGroup = selection.groupId ? atlas.groupById.get(selection.groupId) : undefined;
@@ -179,14 +186,22 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
         .map((u) => ({ key: `u:${u.id}`, text: u.name, p: u.label, ...box(u.bbox), kind: 'minor' as const, always: false, selected: false }));
       return [...groups, ...units];
     }
-    const units = (focusGroup?.units.filter((u) => u.selectable) ?? []).sort(
+    const subs = depth === 2 && subunits?.length
+      ? [...subunits]
+          .sort((a, b) => Number(b.id === subSelected) - Number(a.id === subSelected) || (b.bbox[1][0] - b.bbox[0][0]) * (b.bbox[1][1] - b.bbox[0][1]) - (a.bbox[1][0] - a.bbox[0][0]) * (a.bbox[1][1] - a.bbox[0][1]))
+          .map((u) => ({ key: `s:${u.id}`, text: u.name, p: u.label, ...box(u.bbox), kind: 'sub' as const, always: u.id === subSelected, selected: u.id === subSelected }))
+      : [];
+    const units = (focusGroup?.units.filter((u) => u.selectable && !(subs.length && u.id === selection.unitId)) ?? []).sort(
       (a, b) => Number(b.id === selection.unitId) - Number(a.id === selection.unitId) || area(b) - area(a),
     );
-    return units.map((u) => ({
-      key: `u:${u.id}`, text: u.name, p: u.label, ...box(u.bbox), kind: 'unit' as const,
-      always: u.id === selection.unitId, selected: u.id === selection.unitId,
-    }));
-  }, [atlas, depth, focusGroup, labels, selection.unitId]);
+    return [
+      ...subs,
+      ...units.map((u) => ({
+        key: `u:${u.id}`, text: u.name, p: u.label, ...box(u.bbox), kind: 'unit' as const,
+        always: u.id === selection.unitId, selected: u.id === selection.unitId,
+      })),
+    ];
+  }, [atlas, depth, focusGroup, labels, selection.unitId, subunits, subSelected]);
 
   // Küçük hedefler için büyütülmüş görünmez dokunma alanları
   const hitSpecs = useMemo(
@@ -218,7 +233,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
       for (const el of Array.from(lg.children) as SVGTextElement[]) {
         const px = Number(el.dataset.px);
         const py = Number(el.dataset.py);
-        const base = el.dataset.kind === 'group' ? (live.current.atlas.id === 'cihan' ? 13 : 16) : el.dataset.kind === 'minor' ? 10.5 : 13.5;
+        const base = el.dataset.kind === 'group' ? (live.current.atlas.id === 'cihan' ? 13 : 16) : el.dataset.kind === 'minor' ? 10.5 : el.dataset.kind === 'sub' ? 11.5 : 13.5;
         const fs = base * scale;
         const sw = Number(el.dataset.w) * t.k;
         const sh = Number(el.dataset.h) * t.k;
@@ -226,7 +241,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
         const tw = chars * fs * 0.56;
         const sx = t.x + t.k * px;
         const sy = t.y + t.k * py;
-        const minor = el.dataset.kind === 'minor';
+        const minor = el.dataset.kind === 'minor' || el.dataset.kind === 'sub';
         // İl/ülke adları genel görünümde biraz taşabilir (çakışma denetimi yine korur)
         let fits = el.dataset.always === '1' || (minor ? tw <= sw * 1.7 && fs <= sh * 1.3 : tw <= sw * 1.05 && fs * 1.1 <= sh);
         // Çakışma: öncelik sırasına göre (DOM sırası) yerleşen etiketlerle üst üste binen gizlenir
@@ -538,6 +553,12 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
         suppressClick.current = false;
         return;
       }
+      // İlin içindeki ilçeye dokunma
+      const subEl = (e.target as Element | null)?.closest?.('[data-s]') as SVGElement | null;
+      if (subEl && live.current.interaction === 'explore' && live.current.onSubSelect) {
+        live.current.onSubSelect(subEl.dataset.s!);
+        return;
+      }
       const target = targetAt(e);
       if (live.current.interaction === 'pick') {
         const id = target ? (target.kind === 'unit' ? target.unit.id : target.group.id) : null;
@@ -611,8 +632,9 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
 
   // ---------- Çizim ----------
   const hlUnit = highlight !== undefined ? (highlight ? atlas.unitById.get(highlight) : undefined) : selUnit;
-  const glowD = hlUnit ? hlUnit.d : highlight !== undefined ? '' : focusGroup ? focusGroup.outline : '';
-  const glowKey = hlUnit ? `u:${hlUnit.id}` : focusGroup ? `g:${focusGroup.id}` : 'none';
+  const hlSub = depth === 2 && subSelected ? subunits?.find((x) => x.id === subSelected) : undefined;
+  const glowD = hlSub ? hlSub.d : hlUnit ? hlUnit.d : highlight !== undefined ? '' : focusGroup ? focusGroup.outline : '';
+  const glowKey = hlSub ? `s:${hlSub.id}` : hlUnit ? `u:${hlUnit.id}` : focusGroup ? `g:${focusGroup.id}` : 'none';
   const lineP = line ? [atlas.project(line.from), atlas.project(line.to)] : null;
   const markSpecs = (marks ?? [])
     .map((m) => ({ m, p: atlas.project(m.at) }))
@@ -666,6 +688,14 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
           <path className="grp-borders" d={atlas.groupBorders} />
           <path className="coast" d={atlas.outline} />
           <path className={`veil${focusGroup ? ' on' : ''}`} d={VEIL_RECT + (focusGroup ? focusGroup.outline : '')} />
+          {depth === 2 && subunits && subunits.length > 0 && (
+            <g key={`subs:${selection.unitId}`} className="subs">
+              {subunits.map((x) => (
+                <path key={x.id} data-s={x.id} d={x.d} className={`sub${x.id === subSelected ? ' sub-sel' : ''}`} />
+              ))}
+              <path className="sub-borders" d={subBorders} />
+            </g>
+          )}
           {glowD && (
             <g key={glowKey} className="glow">
               <path className="glow-wide" d={glowD} />

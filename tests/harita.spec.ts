@@ -50,6 +50,21 @@ test.describe('seviyeli gezinme', () => {
     await expect(page).toHaveURL(/\/memleket\/karadeniz$/);
   });
 
+  test('ile girince ilçeler çizilir; ilçeye dokununca adı görünür, Esc ile ile döner', async ({ page }) => {
+    await page.goto('/memleket/karadeniz/rize');
+    await ready(page);
+    await expect(page.locator('path.sub')).toHaveCount(12);
+    const box = (await page.locator('path.sub').first().boundingBox())!;
+    const name = (await page.locator('path.sub').first().getAttribute('data-s'))!.split(':')[1];
+    await page.locator('path.sub').first().click({ position: { x: box.width / 2, y: box.height / 2 }, force: true });
+    await expect(page.getByText('İlçe · Rize').first()).toBeVisible();
+    await expect(page.locator('path.sub-sel')).toHaveCount(1);
+    expect(name.length).toBeGreaterThan(2);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('path.sub-sel')).toHaveCount(0);
+    await expect(page).toHaveURL(/\/memleket\/karadeniz\/rize$/);
+  });
+
   test('geçersiz adres düzeltilir', async ({ page }) => {
     await page.goto('/memleket/ege/rize');
     await ready(page);

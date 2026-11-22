@@ -165,15 +165,19 @@ export function buildAtlas(topo: Topology, cfg: AtlasConfig): Atlas {
   };
 }
 
-function projectionFns(projection: GeoProjection): Pick<Atlas, 'project' | 'invert'> {
+type Fns = 'project' | 'invert' | 'pathOf' | 'boundsOf';
+function projectionFns(projection: GeoProjection): Pick<Atlas, Fns> {
+  const path = geoPath(projection);
   return {
+    pathOf: (g) => path(g) ?? '',
+    boundsOf: (g) => path.bounds(g) as Box,
     project: (p) => (projection(p) as Pt | null) ?? null,
     invert: (p) => (projection.invert?.(p) as Pt | null) ?? null,
   };
 }
 
 /** İşçiden gelen (işlevleri olmayan) atlası yeniden kullanılabilir hale getirir */
-export function hydrateAtlas(data: Omit<Atlas, 'project' | 'invert'>, cfg: AtlasConfig): Atlas {
+export function hydrateAtlas(data: Omit<Atlas, Fns>, cfg: AtlasConfig): Atlas {
   const projection = cfg.projection().scale(data.fit.scale).translate(data.fit.translate);
   return { ...data, ...projectionFns(projection) };
 }
