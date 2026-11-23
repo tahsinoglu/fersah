@@ -7,6 +7,11 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.3.1',
+    date: '2026-11-23',
+    notes: ['Düzeltme: ana ekrana eklenen uygulama ve paylaşılan bağlantılar (ör. /oyna) "sayfa bulunamadı" veriyordu'],
+  },
+  {
     version: '1.3.0',
     date: '2026-11-22',
     notes: [

@@ -77,7 +77,22 @@ async function apiTest(base: string) {
   log('api hesap silme', sil.status, sil.body?.silindi ? 'TAMAM' : JSON.stringify(sil.body));
 }
 
+async function pageTest(base: string) {
+  // Doğrudan açılan adresler (ana ekrana eklenen uygulama /memleket ile başlar) index.html'e düşmeli
+  for (const path of ['/', '/memleket', '/oyna', '/memleket/karadeniz/rize', '/cocuk', '/manifest.webmanifest', '/geo/ilceler.topo.json']) {
+    const r = await fetch(base + path, { redirect: 'manual' });
+    const text = await r.text();
+    const html = text.includes('<div id="root">');
+    log('sayfa', path, r.status, r.status === 200 && (html || !path.match(/^\/(memleket|oyna|cocuk)?$|^\/memleket\//) ) ? 'TAMAM' : 'HATA', html ? 'index' : '');
+  }
+}
+
 if (process.env.FERSAH_SMOKE === '1') {
+  try {
+    await pageTest(process.env.FERSAH_SMOKE_URL ?? 'https://fersah.vercel.app');
+  } catch (e) {
+    log('sayfa HATA', String(e));
+  }
   try {
     await blobTest();
   } catch (e) {
