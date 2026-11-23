@@ -10,6 +10,7 @@ const named = <T extends Record<string, ComponentType<never>>>(load: () => Promi
   lazy(() => load().then((m) => ({ default: m[name] as ComponentType })));
 const GamePage = named(() => import('./routes/GamePage'), 'GamePage') as ComponentType<{ daily?: boolean }>;
 const HubPage = named(() => import('./routes/HubPage'), 'HubPage');
+const CrosswordPage = named(() => import('./routes/CrosswordPage'), 'CrosswordPage');
 const StatsPage = named(() => import('./routes/StatsPage'), 'StatsPage');
 const KidsLayout = named(() => import('./kids/KidsRoutes'), 'KidsLayout');
 const KidsHome = named(() => import('./kids/KidsRoutes'), 'KidsHome');
@@ -38,6 +39,7 @@ const children = [
   { path: '/istatistik', element: s(<StatsPage />) },
   { path: '/oyun/:atlas/:mode/:scope', element: s(<GamePage />) },
   { path: '/gunluk/:atlas', element: s(<GamePage daily />) },
+  { path: '/bulmaca/:atlas', element: s(<CrosswordPage />) },
   {
     path: '/cocuk',
     element: s(<KidsLayout />),

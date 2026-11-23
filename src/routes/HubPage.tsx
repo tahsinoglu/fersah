@@ -70,6 +70,15 @@ function QuickRow({ atlasId }: { atlasId: AtlasId }) {
             <span className="text-[15px] font-extrabold leading-tight">{t.modes[m].name}</span>
           </Link>
         ))}
+        <Link to={`/bulmaca/${atlasId}`} className="glass pressable flex w-[124px] shrink-0 flex-col gap-2 rounded-2xl p-3">
+          <span className="grid h-10 w-10 place-items-center rounded-xl bg-[var(--accent-tint)] text-[var(--accent)]">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinejoin="round" aria-hidden="true">
+              <path d="M4 4h6v6H4zM10 4h6v6h-6zM10 10h6v6h-6zM10 16h6v4h-6zM16 10h4v6h-4z" />
+              <path d="M6 6.5h1.5" strokeLinecap="round" />
+            </svg>
+          </span>
+          <span className="text-[15px] font-extrabold leading-tight">Çengel Bulmaca</span>
+        </Link>
       </div>
     </div>
   );
