@@ -21,6 +21,7 @@ import { masteryOf } from '../progress/leitner';
 import { cardKey, useProgress } from '../progress/store';
 import { isQuizzable } from '../game/content';
 import { ilceLayer, loadIlceTopo } from '../data/ilceler';
+import { SEHIRLER } from '../data/sehirler';
 import type { Topology } from 'topojson-specification';
 
 const TAB_H = 64;
@@ -191,6 +192,7 @@ function AtlasScreen({ atlasId, atlas }: { atlasId: AtlasId; atlas: Atlas }) {
         groupPaint={groupPaint}
         subunits={layer?.subs}
         subBorders={layer?.borders}
+        cities={atlasId === 'cihan' ? SEHIRLER : undefined}
         nearSubs={near?.subs}
         nearBorders={near?.borders}
         subSelected={sub}

@@ -158,5 +158,20 @@ for (const [a, row] of Object.entries(distRaw)) {
 writeFileSync(join(root, 'src', 'data', 'generated', 'karayolu.json'), JSON.stringify(mesafe));
 console.log('ilçe', Object.values(ilceler).reduce((n, l) => n + l.length, 0), 'mesafe', Object.keys(mesafe).length);
 console.log('tamam');
+// Cihan haritası için şehirler: başkentler + bilinen büyük şehirler (Natural Earth yerleşimleri)
+const sehirJson = join(src, 'sehirler.json');
+run([
+  '-i', join(src, 'ne_10m_populated_places.shp'), 'encoding=utf8',
+  '-filter', '(FEATURECLA === "Admin-0 capital" && ADM0CAP === 1) || SCALERANK <= 2 || (SCALERANK <= 3 && POP_MAX >= 1000000)',
+  '-each', 'ad=NAME_TR || NAME, ulke=ADM0_A3, b=(FEATURECLA === "Admin-0 capital" && ADM0CAP === 1) ? 1 : 0, r=SCALERANK, n=POP_MAX, lon=Math.round(LONGITUDE*1000)/1000, lat=Math.round(LATITUDE*1000)/1000',
+  '-filter-fields', 'ad,ulke,b,r,n,lon,lat',
+  '-o', 'format=json', sehirJson,
+]);
+const sehirler = JSON.parse(readFileSync(sehirJson, 'utf8'))
+  .sort((a, b) => b.b - a.b || a.r - b.r || b.n - a.n)
+  .map((c) => [c.ad, c.ulke, c.lon, c.lat, c.b]);
+writeFileSync(join(root, 'src', 'data', 'generated', 'sehirler.json'), JSON.stringify(sehirler));
+console.log('şehir', sehirler.length);
+
 // İlçe sınırları ve onlardan türetilen il sınırları (OpenStreetMap / geoBoundaries, ODbL)
 await import('./build-ilce.mjs');

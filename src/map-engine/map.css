@@ -148,6 +148,28 @@
   font-weight: 500;
   fill: var(--ink-3);
 }
+.city-dot {
+  fill: var(--ink);
+  stroke: var(--label-halo);
+  stroke-width: 1.5px;
+  transition: opacity 160ms ease;
+}
+.city-dot.cap {
+  fill: var(--surface, #fff);
+  stroke: var(--ink);
+  stroke-width: 2px;
+}
+.flying .city-dot {
+  opacity: 0;
+}
+.lbl-city {
+  font-weight: 500;
+  fill: var(--ink-2);
+}
+.lbl-city.lbl-sel {
+  font-weight: 700;
+  fill: var(--ink);
+}
 .lbl-sub {
   font-weight: 600;
   fill: var(--ink-2);

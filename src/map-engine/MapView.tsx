@@ -36,6 +36,15 @@ export interface MapMark {
   at: Pt; // boylam, enlem
 }
 
+export interface MapCity {
+  id: string;
+  name: string;
+  /** Ait olduğu birim (ülke) */
+  unitId: string;
+  at: Pt; // boylam, enlem
+  capital: boolean;
+}
+
 export interface MapLine {
   from: Pt;
   to: Pt;
@@ -73,6 +82,8 @@ export interface MapViewProps {
   /** Seçili alt parça */
   subSelected?: string | null;
   onSubSelect?: (id: string | null) => void;
+  /** Şehirler (Cihan: başkentler ve büyük şehirler); kıta ve ülke seviyesinde gösterilir */
+  cities?: MapCity[];
   /** Komşu birimlerin alt parçaları (yalnızca gösterim; dokunulunca komşu birim seçilir) */
   nearSubs?: SubUnit[];
   nearBorders?: string;
@@ -141,7 +152,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
   {
     atlas, selection, insets, onSelect, onUp, labels = true, reducedMotion = false, ariaLabel, className,
     interaction = 'explore', pickable, pickGroups = false, slow = false, onPick, paint, groupPaint, highlight, marks, line, overlays,
-    subunits, subBorders, subSelected = null, onSubSelect, labelMode = 'level', nearSubs, nearBorders,
+    subunits, subBorders, subSelected = null, onSubSelect, labelMode = 'level', nearSubs, nearBorders, cities,
   },
   ref,
 ) {
@@ -149,6 +160,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
   const svgRef = useRef<SVGSVGElement>(null);
   const worldRef = useRef<SVGGElement>(null);
   const labelRef = useRef<SVGGElement>(null);
+  const dotRef = useRef<SVGGElement>(null);
   const hitRef = useRef<SVGGElement>(null);
   const hoverRef = useRef<SVGPathElement>(null);
   const tipRef = useRef<HTMLDivElement>(null);
@@ -207,6 +219,24 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
       (a, b) => Number(b.id === selection.unitId) - Number(a.id === selection.unitId) || area(b) - area(a),
     );
     const sel = selUnit;
+    // Şehirler: kıtada başkentler; ülkede o ülkenin şehirleri öne, diğer başkentler sonra
+    const cityLabel = (c: MapCity) => {
+      const p = atlas.project(c.at);
+      return p ? [{ key: `c:${c.id}`, text: c.name, p, w: 0, h: 0, kind: 'city' as const, always: false, selected: c.capital }] : [];
+    };
+    const inFocus = (c: MapCity) => !!focusGroup && atlas.unitById.get(c.unitId)?.groupId === focusGroup.id;
+    const ownCities = depth === 2 && sel ? (cities ?? []).filter((c) => c.unitId === sel.id).flatMap(cityLabel) : [];
+    const capitals = (cities ?? []).filter((c) => c.capital && (depth === 2 ? c.unitId !== sel?.id : inFocus(c))).flatMap(cityLabel);
+    const nearCities = depth === 2 && sel ? (cities ?? []).filter((c) => !c.capital && sel.neighbors.includes(c.unitId)).flatMap(cityLabel) : [];
+    if (cities?.length && !subs.length) {
+      const unitL = (u: MapUnit) => ({
+        key: `u:${u.id}`, text: u.name, p: u.label, ...box(u.bbox), kind: 'unit' as const,
+        always: u.id === selection.unitId, selected: u.id === selection.unitId,
+      });
+      const us = (focusGroup?.units.filter((u) => u.selectable) ?? []).sort((a, b) => Number(b.id === selection.unitId) - Number(a.id === selection.unitId) || area(b) - area(a));
+      if (depth === 2) return [...us.slice(0, 1).map(unitL), ...ownCities, ...us.slice(1).map(unitL), ...capitals, ...nearCities];
+      return [...us.map(unitL), ...capitals];
+    }
     // İl seviyesinde komşu illerin adları da (bölge dışında olsalar bile) gösterilir
     const near = depth === 2 && sel ? sel.neighbors.map((id) => atlas.unitById.get(id)).filter((u): u is MapUnit => !!u && u.groupId !== sel.groupId) : [];
     const nsubs = depth === 2 && nearSubs?.length
@@ -222,7 +252,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
       })),
       ...nsubs,
     ];
-  }, [atlas, depth, focusGroup, labels, selection.unitId, selUnit, subunits, subSelected, labelMode, highlight, nearSubs]);
+  }, [atlas, depth, focusGroup, labels, selection.unitId, selUnit, subunits, subSelected, labelMode, highlight, nearSubs, cities]);
 
   // Küçük hedefler için büyütülmüş görünmez dokunma alanları
   const hitSpecs = useMemo(
@@ -311,7 +341,26 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
         };
         let pos: [number, number] | null = null;
         const shiftable = full && L.onScreen && kind !== 'group' && kind !== 'city' && tw < sw * 1.8;
-        if (always) pos = [sx0, sy0];
+        if (kind === 'city') {
+          // Nokta + yanında ad: sağ, sol, üst, alt
+          const dot: Rect = { x0: sx0 - 4, x1: sx0 + 4, y0: sy0 - 4, y1: sy0 + 4 };
+          if (L.onScreen && !hits(dot)) {
+            for (const [dx, dy] of [[tw / 2 + 7, 0], [-(tw / 2 + 7), 0], [0, -fs], [0, fs]]) {
+              const r = rectAt(sx0 + dx, sy0 + dy);
+              if (!hits(r)) {
+                pos = [sx0 + dx, sy0 + dy];
+                placed.push(dot);
+                break;
+              }
+            }
+          }
+          const d = dotRef.current?.querySelector(`[data-key="${CSS.escape(el.dataset.key!)}"]`);
+          if (d) {
+            d.setAttribute('cx', sx0.toFixed(1));
+            d.setAttribute('cy', sy0.toFixed(1));
+            d.classList.toggle('lbl-hidden', !pos);
+          }
+        } else if (always) pos = [sx0, sy0];
         else {
           let best: { p: [number, number]; cost: number } | null = null;
           if (fitsHere && !hits(rectAt(sx0, sy0))) {
@@ -339,7 +388,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
           }
           pos = best?.p ?? null;
         }
-        if (full) {
+        if (full && kind !== 'city') {
           if (pos && (pos[0] !== sx0 || pos[1] !== sy0)) {
             el.dataset.ox = String((pos[0] - sx0) / t.k);
             el.dataset.oy = String((pos[1] - sy0) / t.k);
@@ -821,6 +870,11 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
           )}
         </g>
         <g className="labels-wrap">
+        <g ref={dotRef} key={`d:${depth}:${selection.groupId ?? ''}:${selection.unitId ?? ''}`} className="city-dots" aria-hidden="true">
+          {labelSpecs.filter((l) => l.kind === 'city').map((l) => (
+            <circle key={l.key} data-key={l.key} r={l.selected ? 3.6 : 2.6} className={`city-dot${l.selected ? ' cap' : ''}`} />
+          ))}
+        </g>
         <g ref={labelRef} key={`${depth}:${selection.groupId ?? ''}`} className="labels" aria-hidden="true">
           {labelSpecs.map((l) => (
             <text
