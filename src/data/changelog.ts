@@ -7,6 +7,19 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.4.0',
+    date: '2026-11-23',
+    notes: [
+      'Çengel Bulmaca: Memleket ve Cihan için, her seferinde yeni bulmaca',
+      'Cihan haritasında başkentler ve büyük şehirler',
+      'İl adları artık çakışınca kendi sınırları içinde boş yere kayar (ör. Üsküdar, Kadıköy)',
+      'Bir ile bakarken komşu illerin ilçeleri de görünür',
+      'Oyunda cevaptan sonra haritada tüm il/ülke adları',
+      'Memleket Testi: yeni soru türleri ve daha iyi şıklar',
+      'Uygulama her zaman açık temada',
+    ],
+  },
+  {
     version: '1.3.1',
     date: '2026-11-23',
     notes: ['Düzeltme: ana ekrana eklenen uygulama ve paylaşılan bağlantılar (ör. /oyna) "sayfa bulunamadı" veriyordu'],

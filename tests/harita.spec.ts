@@ -174,7 +174,8 @@ test.describe('kapsama', () => {
       if (g === 'antarktika') continue;
       await page.goto(`/cihan/${g}`);
       await ready(page);
-      const pts = await page.$$eval('text.lbl', (ts) =>
+      // Yalnızca ülke etiketleri (şehir adları "c:" ile başlar)
+      const pts = await page.$$eval('text.lbl[data-key^="u:"]', (ts) =>
         ts.map((t) => ({ id: (t as SVGTextElement).dataset.key!.slice(2), x: Number(t.getAttribute('x')), y: Number(t.getAttribute('y')) })),
       );
       for (const p of pts) {
