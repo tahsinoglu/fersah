@@ -409,7 +409,8 @@ function Game({ atlasId, atlas, mode, scope }: { atlasId: AtlasId; atlas: Atlas;
           interaction="pick"
           pickable={q?.kind === 'bul' ? pickable : q?.kind === 'yakin' ? allIds : NONE}
           onPick={onPick}
-          labels={false}
+          labels={phase === 'reveal'}
+          labelMode="units"
           paint={paint}
           highlight={highlight}
           marks={marks}

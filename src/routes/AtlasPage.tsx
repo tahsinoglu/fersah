@@ -15,7 +15,6 @@ import { BottomSheet, SHEET_PEEK, SIDE_PANEL_W, SidePanel } from '../ui/InfoPane
 import { Loading } from '../ui/Loading';
 import { Search } from '../ui/Search';
 import { Segmented, TabBar } from '../ui/SectionSwitch';
-import { ThemeMenu } from '../ui/ThemeMenu';
 import { IconLayers, IconPlay, IconTarget } from '../ui/icons';
 import { ModeSheet } from '../ui/ModeSheet';
 import { masteryOf } from '../progress/leitner';
@@ -107,6 +106,13 @@ function AtlasScreen({ atlasId, atlas }: { atlasId: AtlasId; atlas: Atlas }) {
     if (ilId) loadIlceTopo().then(setIlceTopo).catch(() => {});
   }, [ilId]);
   const layer = useMemo(() => (ilId && ilceTopo ? ilceLayer(atlas, ilceTopo, ilId) : null), [atlas, ilceTopo, ilId]);
+  // Komşu illerin ilçeleri (soluk): çevreyi de görmek için
+  const near = useMemo(() => {
+    const u = ilId ? atlas.unitById.get(ilId) : undefined;
+    if (!u || !ilceTopo) return null;
+    const ls = u.neighbors.map((n) => ilceLayer(atlas, ilceTopo, n));
+    return { subs: ls.flatMap((l) => l.subs), borders: ls.map((l) => l.borders).join('') };
+  }, [atlas, ilceTopo, ilId]);
   const upOrSub = useCallback(() => (sub ? setSub(null) : up()), [sub, up]);
 
   // Öğrenme haritası: bilinme düzeyine göre boya. Seviyeli: kökte bölge ortalaması, bölgede iller.
@@ -185,6 +191,8 @@ function AtlasScreen({ atlasId, atlas }: { atlasId: AtlasId; atlas: Atlas }) {
         groupPaint={groupPaint}
         subunits={layer?.subs}
         subBorders={layer?.borders}
+        nearSubs={near?.subs}
+        nearBorders={near?.borders}
         subSelected={sub}
         onSubSelect={(id) => setSub((cur) => (cur === id ? null : id))}
         reducedMotion={reduced}
@@ -211,9 +219,6 @@ function AtlasScreen({ atlasId, atlas }: { atlasId: AtlasId; atlas: Atlas }) {
         )}
         <div className="pointer-events-auto flex min-w-0 flex-1 md:max-w-[420px]">
           <Search current={atlasId} onPick={onSearchPick} />
-        </div>
-        <div className="pointer-events-auto md:ml-auto">
-          <ThemeMenu />
         </div>
       </header>
 

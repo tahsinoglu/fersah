@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import { useMedia } from '../lib/viewport';
 import { Segmented, TabBar, type Section } from './SectionSwitch';
-import { ThemeMenu } from './ThemeMenu';
 import { FersahLogo, FersahMark } from './Logo';
 import { VersionBadge } from './VersionBadge';
 
@@ -21,7 +20,7 @@ export function Shell({ section, title, children }: { section: Section; title: s
         )}
         <h1 className={`min-w-0 flex-1 truncate text-[26px] font-semibold ${desktop ? 'sr-only' : ''}`}>{title}</h1>
         {desktop && <div className="flex-1" />}
-        <ThemeMenu />
+        
       </header>
       <main className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-6 pt-4">
         <div className="mx-auto flex max-w-[640px] flex-col gap-5">

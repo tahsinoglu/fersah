@@ -73,8 +73,13 @@ export interface MapViewProps {
   /** Seçili alt parça */
   subSelected?: string | null;
   onSubSelect?: (id: string | null) => void;
+  /** Komşu birimlerin alt parçaları (yalnızca gösterim; dokunulunca komşu birim seçilir) */
+  nearSubs?: SubUnit[];
+  nearBorders?: string;
   /** Etiketler (oyun sırasında kapatılır) */
   labels?: boolean;
+  /** 'units': seviyeden bağımsız tüm il/ülke adları (oyunda cevap sonrası) */
+  labelMode?: 'level' | 'units';
   reducedMotion?: boolean;
   ariaLabel: string;
   className?: string;
@@ -127,7 +132,7 @@ interface LabelSpec {
   p: Pt;
   w: number;
   h: number;
-  kind: 'group' | 'unit' | 'minor' | 'sub';
+  kind: 'group' | 'unit' | 'minor' | 'sub' | 'nsub' | 'city';
   always: boolean;
   selected: boolean;
 }
@@ -136,7 +141,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
   {
     atlas, selection, insets, onSelect, onUp, labels = true, reducedMotion = false, ariaLabel, className,
     interaction = 'explore', pickable, pickGroups = false, slow = false, onPick, paint, groupPaint, highlight, marks, line, overlays,
-    subunits, subBorders, subSelected = null, onSubSelect,
+    subunits, subBorders, subSelected = null, onSubSelect, labelMode = 'level', nearSubs, nearBorders,
   },
   ref,
 ) {
@@ -175,6 +180,13 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
     if (!labels) return [];
     const box = (b: Box) => ({ w: b[1][0] - b[0][0], h: b[1][1] - b[0][1] });
     const area = (u: MapUnit) => (u.bbox[1][0] - u.bbox[0][0]) * (u.bbox[1][1] - u.bbox[0][1]);
+    if (labelMode === 'units') {
+      const hl = highlight ?? null;
+      return atlas.units
+        .filter((u) => u.selectable && u.groupId !== 'antarktika')
+        .sort((a, b) => Number(b.id === hl) - Number(a.id === hl) || area(b) - area(a))
+        .map((u) => ({ key: `u:${u.id}`, text: u.name, p: u.label, ...box(u.bbox), kind: (u.id === hl ? 'unit' : 'minor') as 'unit' | 'minor', always: u.id === hl, selected: u.id === hl }));
+    }
     if (depth === 0) {
       // Genel görünüm: önce bölge/kıta adları, sonra sığdığı kadar il/ülke adları (büyükten küçüğe)
       const groups = atlas.groups
@@ -194,14 +206,23 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
     const units = (focusGroup?.units.filter((u) => u.selectable && !(subs.length && u.id === selection.unitId)) ?? []).sort(
       (a, b) => Number(b.id === selection.unitId) - Number(a.id === selection.unitId) || area(b) - area(a),
     );
+    const sel = selUnit;
+    // İl seviyesinde komşu illerin adları da (bölge dışında olsalar bile) gösterilir
+    const near = depth === 2 && sel ? sel.neighbors.map((id) => atlas.unitById.get(id)).filter((u): u is MapUnit => !!u && u.groupId !== sel.groupId) : [];
+    const nsubs = depth === 2 && nearSubs?.length
+      ? [...nearSubs]
+          .sort((a, b) => (b.bbox[1][0] - b.bbox[0][0]) * (b.bbox[1][1] - b.bbox[0][1]) - (a.bbox[1][0] - a.bbox[0][0]) * (a.bbox[1][1] - a.bbox[0][1]))
+          .map((u) => ({ key: `s:${u.id}`, text: u.name, p: u.label, ...box(u.bbox), kind: 'nsub' as const, always: false, selected: false }))
+      : [];
     return [
       ...subs,
-      ...units.map((u) => ({
+      ...[...units, ...near].map((u) => ({
         key: `u:${u.id}`, text: u.name, p: u.label, ...box(u.bbox), kind: 'unit' as const,
         always: u.id === selection.unitId, selected: u.id === selection.unitId,
       })),
+      ...nsubs,
     ];
-  }, [atlas, depth, focusGroup, labels, selection.unitId, subunits, subSelected]);
+  }, [atlas, depth, focusGroup, labels, selection.unitId, selUnit, subunits, subSelected, labelMode, highlight, nearSubs]);
 
   // Küçük hedefler için büyütülmüş görünmez dokunma alanları
   const hitSpecs = useMemo(
@@ -222,7 +243,11 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
     }
   }, []);
 
-  const layout = useCallback((t: ZoomTransform) => {
+  /**
+   * Etiket yerleşimi. Çakışan ya da sığmayan bir ad, kendi alanının (il, ilçe, ülke) içinde kalan boş bir
+   * yere kaydırılmayı dener. full=false (parmakla kaydırırken) yalnızca son seçilen konumları kullanır.
+   */
+  const layout = useCallback((t: ZoomTransform, full = true) => {
     const lg = labelRef.current;
     const levelK = levelKRef.current;
     const vis = visibleLabelsRef.current;
@@ -230,30 +255,107 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
     if (lg) {
       const scale = Math.min(1.3, Math.max(0.9, Math.pow(t.k / levelK, 0.22)));
       const placed: { x0: number; x1: number; y0: number; y1: number }[] = [];
-      for (const el of Array.from(lg.children) as SVGTextElement[]) {
-        const px = Number(el.dataset.px);
-        const py = Number(el.dataset.py);
-        const base = el.dataset.kind === 'group' ? (live.current.atlas.id === 'cihan' ? 13 : 16) : el.dataset.kind === 'minor' ? 10.5 : el.dataset.kind === 'sub' ? 11.5 : 13.5;
+      const world = worldRef.current;
+      const shapeOf = (key: string): SVGGeometryElement | null => {
+        if (!world) return null;
+        const id = key.slice(2);
+        if (key.startsWith('u:')) return world.querySelector(`path.unit[data-u="${CSS.escape(id)}"]`);
+        if (key.startsWith('s:')) return world.querySelector(`path[data-s="${CSS.escape(id)}"], path[data-ns="${CSS.escape(id)}"]`);
+        return null;
+      };
+      const inFill = (shape: SVGGeometryElement, x: number, y: number) => {
+        try {
+          return shape.isPointInFill(new DOMPoint((x - t.x) / t.k, (y - t.y) / t.k));
+        } catch {
+          return false;
+        }
+      };
+      const hits = (r: { x0: number; x1: number; y0: number; y1: number }) => placed.some((q) => r.x0 < q.x1 && r.x1 > q.x0 && r.y0 < q.y1 && r.y1 > q.y0);
+      type Rect = { x0: number; x1: number; y0: number; y1: number };
+      const els = Array.from(lg.children) as SVGTextElement[];
+      // Ön geçiş: her etiketin asıl konumu, boyutu ve sığıp sığmadığı
+      const info = els.map((el) => {
+        const kind = el.dataset.kind;
+        const base = kind === 'group' ? (live.current.atlas.id === 'cihan' ? 13 : 16) : kind === 'minor' ? 10.5 : kind === 'sub' ? 11.5 : kind === 'nsub' ? 10.5 : kind === 'city' ? 10.5 : 13.5;
         const fs = base * scale;
         const sw = Number(el.dataset.w) * t.k;
         const sh = Number(el.dataset.h) * t.k;
-        const chars = Number(el.dataset.len);
-        const tw = chars * fs * 0.56;
-        const sx = t.x + t.k * px;
-        const sy = t.y + t.k * py;
-        const minor = el.dataset.kind === 'minor' || el.dataset.kind === 'sub';
-        // İl/ülke adları genel görünümde biraz taşabilir (çakışma denetimi yine korur)
-        let fits = el.dataset.always === '1' || (minor ? tw <= sw * 1.7 && fs <= sh * 1.3 : tw <= sw * 1.05 && fs * 1.1 <= sh);
-        // Çakışma: öncelik sırasına göre (DOM sırası) yerleşen etiketlerle üst üste binen gizlenir
-        const r = { x0: sx - tw / 2 - 3, x1: sx + tw / 2 + 3, y0: sy - fs * 0.62, y1: sy + fs * 0.62 };
-        if (fits && placed.some((q) => r.x0 < q.x1 && r.x1 > q.x0 && r.y0 < q.y1 && r.y1 > q.y0)) fits = false;
-        if (fits) placed.push(r);
-        el.setAttribute('x', sx.toFixed(1));
-        el.setAttribute('y', sy.toFixed(1));
+        const tw = Number(el.dataset.len) * fs * 0.56;
+        const sx0 = t.x + t.k * Number(el.dataset.px);
+        const sy0 = t.y + t.k * Number(el.dataset.py);
+        const minor = kind === 'minor' || kind === 'sub' || kind === 'nsub';
+        const always = el.dataset.always === '1';
+        const fitsHere = always || (minor ? tw <= sw * 1.7 && fs <= sh * 1.3 : tw <= sw * 1.05 && fs * 1.1 <= sh);
+        const rectAt = (x: number, y: number): Rect => ({ x0: x - tw / 2 - 3, x1: x + tw / 2 + 3, y0: y - fs * 0.62, y1: y + fs * 0.62 });
+        const onScreen = sx0 > -200 && sx0 < sizeRef.current.w + 200 && sy0 > -100 && sy0 < sizeRef.current.h + 100;
+        return { el, kind, fs, sw, tw, sx0, sy0, always, fitsHere, rectAt, primary: rectAt(sx0, sy0), onScreen };
+      });
+      const over = (r: Rect, q: Rect) => r.x0 < q.x1 && r.x1 > q.x0 && r.y0 < q.y1 && r.y1 > q.y0;
+      const STEPS = [
+        [0.5, 0], [-0.5, 0], [0, 1.25], [0, -1.25], [0.5, 1.25], [-0.5, 1.25], [0.5, -1.25], [-0.5, -1.25],
+        [1, 0], [-1, 0], [0, 2.4], [0, -2.4], [1, 1.25], [-1, 1.25], [1, -1.25], [-1, -1.25],
+        [0.25, 0], [-0.25, 0], [0.25, 0.7], [-0.25, 0.7], [0.25, -0.7], [-0.25, -0.7], [0, 0.7], [0, -0.7],
+      ];
+      info.forEach((L, i) => {
+        const { el, kind, tw, fs, sw, sx0, sy0, always, fitsHere, rectAt } = L;
+        const inside = (x: number, y: number) => {
+          const shape = shapeOf(el.dataset.key!);
+          // Merkez alanın içinde olmalı; küçük ilçelerde yazının bir ucu dışarı taşabilir
+          return !!shape && inFill(shape, x, y) && (inFill(shape, x - tw / 2 + 2, y) || inFill(shape, x + tw / 2 - 2, y)) && inFill(shape, x, y - fs * 0.3) && inFill(shape, x, y + fs * 0.3);
+        };
+        // Sonra yerleşecek (sığan) etiketlerin asıl yerlerini kapatma cezası
+        const blocks = (r: Rect) => {
+          let n = 0;
+          for (let j = i + 1; j < info.length; j++) if (info[j].fitsHere && info[j].onScreen && over(r, info[j].primary)) n++;
+          return n;
+        };
+        let pos: [number, number] | null = null;
+        const shiftable = full && L.onScreen && kind !== 'group' && kind !== 'city' && tw < sw * 1.8;
+        if (always) pos = [sx0, sy0];
+        else {
+          let best: { p: [number, number]; cost: number } | null = null;
+          if (fitsHere && !hits(rectAt(sx0, sy0))) {
+            const c = full ? blocks(rectAt(sx0, sy0)) : 0;
+            best = { p: [sx0, sy0], cost: c };
+          }
+          if (!full && !best && el.dataset.ox) {
+            const x = sx0 + Number(el.dataset.ox) * t.k;
+            const y = sy0 + Number(el.dataset.oy) * t.k;
+            if (!hits(rectAt(x, y))) best = { p: [x, y], cost: 0 };
+          }
+          if (shiftable && (!best || best.cost > 0)) {
+            for (const [fx, fy] of STEPS) {
+              const x = sx0 + fx * tw;
+              const y = sy0 + fy * fs;
+              const r = rectAt(x, y);
+              if (hits(r)) continue;
+              const c = blocks(r);
+              // Kaydırmak yalnızca daha az etiketi kapatıyorsa değer
+              if (best && c >= best.cost) continue;
+              if (!inside(x, y)) continue;
+              best = { p: [x, y], cost: c };
+              if (c === 0) break;
+            }
+          }
+          pos = best?.p ?? null;
+        }
+        if (full) {
+          if (pos && (pos[0] !== sx0 || pos[1] !== sy0)) {
+            el.dataset.ox = String((pos[0] - sx0) / t.k);
+            el.dataset.oy = String((pos[1] - sy0) / t.k);
+          } else {
+            delete el.dataset.ox;
+            delete el.dataset.oy;
+          }
+        }
+        const [x, y] = pos ?? [sx0, sy0];
+        if (pos) placed.push(rectAt(x, y));
+        el.setAttribute('x', x.toFixed(1));
+        el.setAttribute('y', y.toFixed(1));
         el.style.fontSize = `${fs.toFixed(1)}px`;
-        el.classList.toggle('lbl-hidden', !fits);
-        if (fits) vis.add(el.dataset.key!);
-      }
+        el.classList.toggle('lbl-hidden', !pos);
+        if (pos) vis.add(el.dataset.key!);
+      });
     }
     layoutMarks(t);
     positionTip(t);
@@ -329,11 +431,12 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
         const w = worldRef.current;
         if (w) w.style.transform = `translate(${t.x}px, ${t.y}px) scale(${t.k})`;
         // Programlı kamera geçişinde etiketler gizli; yalnızca kullanıcı hareketinde canlı yerleştir
-        if (!flyingRef.current) layout(t);
+        if (!flyingRef.current) layout(t, false);
         else layoutMarks(t);
       })
       .on('end', (e) => {
         svg.classList.remove('moving');
+        layout(tRef.current);
         layoutHits(tRef.current);
         const { selection: sel, onUp: up } = live.current;
         // Kullanıcı iki parmakla / tekerlekle belirgin şekilde uzaklaştırdıysa bir üst seviyeye çık
@@ -688,6 +791,14 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
           <path className="grp-borders" d={atlas.groupBorders} />
           <path className="coast" d={atlas.outline} />
           <path className={`veil${focusGroup ? ' on' : ''}`} d={VEIL_RECT + (focusGroup ? focusGroup.outline : '')} />
+          {depth === 2 && nearSubs && nearSubs.length > 0 && (
+            <g key={`near:${selection.unitId}`} className="subs near-subs">
+              {nearSubs.map((x) => (
+                <path key={x.id} data-ns={x.id} d={x.d} className="near-sub" />
+              ))}
+              <path className="sub-borders near" d={nearBorders} />
+            </g>
+          )}
           {depth === 2 && subunits && subunits.length > 0 && (
             <g key={`subs:${selection.unitId}`} className="subs">
               {subunits.map((x) => (

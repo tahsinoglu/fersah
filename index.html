@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="tr">
+<html lang="tr" data-theme="light">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -8,18 +8,10 @@
     <meta name="theme-color" content="#f7f7f5" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Fersah" />
     <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
-    <script>
-      // Tema yanıp sönmesin diye ilk boyamadan önce uygula
-      try {
-        var p = localStorage.getItem('mc-theme') || 'auto';
-        var d = p === 'dark' || (p === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
-        document.documentElement.dataset.theme = d ? 'dark' : 'light';
-      } catch (e) {}
-    </script>
   </head>
   <body>
     <div id="root"></div>

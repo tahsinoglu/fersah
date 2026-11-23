@@ -92,14 +92,11 @@ test.describe('arayüz', () => {
     await expect(page).toHaveURL(/\/cihan\/asya\/japonya$/, { timeout: 5000 });
   });
 
-  test('tema seçici koyu temaya geçer ve hatırlar', async ({ page }) => {
+  test('uygulama her zaman açık temada (eski koyu tercih yok sayılır)', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('mc-theme', 'dark'));
     await page.goto('/memleket');
     await ready(page);
-    await page.getByRole('button', { name: /^Tema/ }).click();
-    await page.getByRole('menuitemradio', { name: 'Koyu' }).click();
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-    await page.reload();
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   });
 
   test('klavye: oklarla gez, Enter ile seç', async ({ page, isMobile }) => {

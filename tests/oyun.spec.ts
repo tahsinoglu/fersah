@@ -46,9 +46,10 @@ test.describe('oyun', () => {
   test('Hepsini Bitir: kapsamdaki her ili bulunca rekor kaydedilir', async ({ page }) => {
     await page.goto('/oyun/memleket/hepsi/marmara');
     await ready(page);
-    for (let i = 0; i < 11; i++) {
-      await answerFind(page, true);
-      await page.waitForTimeout(350);
+    // Her ili bul (geçiş animasyonu sırasında kaçan tıklama tekrar denenir)
+    for (let i = 0; i < 20 && !(await page.getByText('Tur bitti').count()); i++) {
+      if (await page.locator('header h1').count()) await answerFind(page, true);
+      await page.waitForTimeout(400);
     }
     await expect(page.getByText('Tur bitti')).toBeVisible();
     await expect(page.getByText('Yeni kişisel rekor!')).toBeVisible();

@@ -29,8 +29,9 @@ export function setTheme(pref: ThemePref) {
 
 const media = () => window.matchMedia('(prefers-color-scheme: dark)');
 
+/** Fersah her zaman açık temada çalışır (koyu tema kaldırıldı) */
 export function resolvedTheme(): 'light' | 'dark' {
-  return current === 'auto' ? (media().matches ? 'dark' : 'light') : current;
+  return 'light';
 }
 
 export function apply() {
