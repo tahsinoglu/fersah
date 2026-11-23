@@ -5,6 +5,7 @@ import type { Atlas } from '../map-engine/types';
 import { BOLGELER, ILLER } from '../data/memleket';
 import ilcelerJson from '../data/generated/ilceler.json';
 import karayoluJson from '../data/generated/karayolu.json';
+import mahalleJson from '../data/generated/mahalle-sayisi.json';
 import { generateMemleketTest, type TestData, type TextQuestion } from '../quiz-engine/memleketTest';
 import { answerScore } from '../scoring/score';
 import { weightOf } from '../progress/leitner';
@@ -29,6 +30,7 @@ export function TestQuiz({ atlas, scope, exitTo }: { atlas: Atlas; scope: string
       ilceler: ilcelerJson as Record<string, string[]>,
       komsular: Object.fromEntries(atlas.units.map((u) => [u.id, u.neighbors])),
       karayolu: karayoluJson as Record<string, number>,
+      buyukluk: mahalleJson as Record<string, Record<string, number>>,
     }),
     [atlas],
   );

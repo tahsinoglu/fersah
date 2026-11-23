@@ -64,6 +64,15 @@ describe('Memleket Testi', () => {
           expect(ilceler[q.about]).toContain(right);
           for (const o of q.options) if (o !== right) expect(ilceler[q.about]).not.toContain(o);
         }
+        if (q.type === 'disinda') {
+          expect(ilceler[q.about]).not.toContain(right);
+          for (const o of q.options) if (o !== right) expect(ilceler[q.about]).toContain(o);
+        }
+        if (q.type === 'ilce-sayisi') expect(Number(right)).toBe(ilceler[q.about].length);
+        if (q.type === 'yakin-il') {
+          const km = (n: string) => karayolu[roadKey(q.about, ilAd.get(n)!)];
+          for (const o of q.options) if (o !== right) expect(km(o)).toBeGreaterThan(km(right));
+        }
         if (q.type === 'komsu') {
           expect(data.komsular[q.about]).toContain(ilAd.get(right));
           for (const o of q.options) if (o !== right) expect(data.komsular[q.about]).not.toContain(ilAd.get(o));

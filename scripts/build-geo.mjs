@@ -146,6 +146,11 @@ const ilceRaw = JSON.parse(readFileSync(join(tn, 'districtsByCityCode.json'), 'u
 const ilceler = {};
 for (const [code, list] of Object.entries(ilceRaw)) ilceler[String(code).padStart(2, '0')] = [...list].sort((a, b) => a.localeCompare(b, 'tr'));
 writeFileSync(join(root, 'src', 'data', 'generated', 'ilceler.json'), JSON.stringify(ilceler));
+// İlçe büyüklüğü ölçüsü: mahalle sayısı (Memleket Testi daha bilinen ilçeleri öne alır)
+const mahRaw = JSON.parse(readFileSync(join(tn, 'neighbourhoodsByDistrictAndCityCode.json'), 'utf8'));
+const mahalle = {};
+for (const [code, d] of Object.entries(mahRaw)) mahalle[String(code).padStart(2, '0')] = Object.fromEntries(Object.entries(d).map(([n, l]) => [n, l.length]));
+writeFileSync(join(root, 'src', 'data', 'generated', 'mahalle-sayisi.json'), JSON.stringify(mahalle));
 const distRaw = JSON.parse(readFileSync(join(tn, 'distances.json'), 'utf8'));
 const mesafe = {};
 for (const [a, row] of Object.entries(distRaw)) {
